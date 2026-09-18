@@ -1,3 +1,4 @@
+
 # Agri Decision Agent
 
 An agriculture hackathon prototype that turns field and market inputs into clear, explainable farming recommendations. The project is intentionally split so a four-person team can build in parallel while keeping `main` demo-ready.
@@ -61,3 +62,5 @@ After pushing this project to GitHub, the repository owner should:
 ## Getting started
 
 Choose the frontend and backend stacks, then document the commands required to run the prototype in this section. Commit a working vertical slice early: one input, one API response, and one recommendation visible in the interface.
+# selling-blind
+
