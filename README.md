@@ -1,66 +1,84 @@
+# SELLING BLIND — Mandi Saathi Agri Decision Engine
 
-# Agri Decision Agent
+> **Track**: AGRITECH & RURAL INNOVATION  
+> **Problem Statement**: PS-A02 — Selling Blind  
+> **Objective**: Decision-support prototype helping farmers determine whether their current offered mandi price is unusually low for their crop, season, and region, and identifying reachable nearby mandis with historically better prices.
 
-An agriculture hackathon prototype that turns field and market inputs into clear, explainable farming recommendations. The project is intentionally split so a four-person team can build in parallel while keeping `main` demo-ready.
+---
 
-## Team roles
+## 📐 Architecture & Remote AI Integration
 
-| Role | Primary responsibility | Main areas |
+```text
+FRONTEND
+    │
+    ▼
+FASTAPI / NODE BACKEND (Backend PC)
+    │
+    ▼
+DATABASE + AGMARKNET DATA PIPELINE
+    │
+    ▼
+STATISTICAL ANOMALY ENGINE & HAVERSINE RANKER
+    │
+    ▼
+STRUCTURED FACTS (Crop, Price, Median, Deviation, Mandis, Confidence)
+    │
+    ▼ HTTP POST (http://10.10.14.157:11434/api/chat)
+REMOTE MAC: OLLAMA SERVER (10.10.14.157:11434)
+    │
+    ▼ QWEN3:8B (Explanation Layer Only, < 40 words)
+MESSAGE.CONTENT EXTRACTION (Never message.thinking)
+    │
+    ▼
+FASTAPI COMPACT RESPONSE
+    │
+    ▼
+FRONTEND (MANDI SAATHI UI)
+```
+
+---
+
+## 🚀 Optimized API Endpoints
+
+| Method | Endpoint | Description |
 | --- | --- | --- |
-| Team lead + AI/Data | Recommendation logic, data quality, architecture, integration | `ai/`, `data/` |
-| Frontend developer | User flows, screens, and API integration | `frontend/` |
-| Backend/API developer | APIs, database integration, authentication, and service reliability | `backend/` |
-| Research + testing | Domain research, test scenarios, validation, and demo evidence | `docs/research/`, `tests/` |
+| `GET` | `/api/health` | Backend service health check |
+| `GET` | `/api/ai/health` | Verifies reachability of remote Ollama server (`http://10.10.14.157:11434/api/tags`) |
+| `POST` | `/api/analyze-price` | Primary compact price analysis endpoint returning `price_signal`, `historical`, `nearby_mandis`, `confidence`, `explanation`, `data_info` |
+| `GET` | `/api/mandi-history` | Separate endpoint for detailed raw historical timeseries chart data |
+| `GET` | `/api/crops` | Normalized crop directory |
+| `GET` | `/api/mandis` | Reachable mandi directory |
 
-Everyone may contribute anywhere, but the named owner reviews changes in their primary area when possible.
+---
 
-## Repository layout
+## 🛠️ Environment Configuration (`.env`)
 
-```text
-frontend/              Web or mobile interface
-backend/               API, data services, and integrations
-ai/                    Recommendation models, prompts, and evaluation logic
-data/                  Small non-sensitive sample data and data notes
-tests/                 Automated and manual test cases
-docs/research/         Agricultural research, sources, and assumptions
-docs/architecture/     System design and technical decisions
-.github/ISSUE_TEMPLATE/ Issue forms for work tracking
+```env
+APP_NAME="Selling Blind - Mandi Saathi"
+APP_ENV=development
+PORT=8000
+DATABASE_URL="sqlite:///./selling_blind.db"
+OPEN_METEO_BASE_URL="https://api.open-meteo.com/v1"
+NOMINATIM_BASE_URL="https://nominatim.openstreetmap.org"
+
+# Remote Ollama AI Inference Server (Teammate's Mac)
+OLLAMA_BASE_URL=http://10.10.14.157:11434
+OLLAMA_MODEL=qwen3:8b
+AI_MOCK_MODE=false
 ```
 
-Do not commit real farmer data, passwords, API keys, or production exports. Start from `.env.example` and create a local `.env` file for secrets.
+---
 
-## Team workflow
+## 🏃 Commands to Run
 
-`main` is the stable, demo-ready branch. Do not develop directly on it.
-
-```text
-main
-├── feature/frontend
-├── feature/backend
-├── feature/ai-data
-└── feature/research-testing
+### 1. Start Backend Server
+```bash
+node backend/server.js
+# Or FastAPI:
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-For each task:
-
-1. Update your assigned branch from `main`.
-2. Make a focused change and test it locally.
-3. Open a pull request into `main` with a clear summary and test notes.
-4. Have one teammate review it when time permits, then merge only when the demo still works.
-
-For concurrent tasks, create a short-lived branch from the relevant team branch, for example `feature/frontend/login-screen`, and merge it back through a pull request.
-
-## GitHub setup checklist
-
-After pushing this project to GitHub, the repository owner should:
-
-1. Invite the three teammates under **Settings → Collaborators** with **Write** access.
-2. Create the four feature branches shown above from `main`.
-3. In **Settings → Branches**, add a protection rule for `main`: require pull requests before merging and, if practical, one approval. Keep administrators able to bypass it during the hackathon if a demo-critical fix is needed.
-4. Add project-specific run instructions here as the stack is chosen.
-
-## Getting started
-
-Choose the frontend and backend stacks, then document the commands required to run the prototype in this section. Commit a working vertical slice early: one input, one API response, and one recommendation visible in the interface.
-# selling-blind
-
+### 2. Run Verification Suite
+```bash
+node tests/verify_all.js
+```

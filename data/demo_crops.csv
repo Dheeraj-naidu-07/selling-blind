@@ -1,0 +1,9 @@
+id,name,category,aliases
+1,Onion,Vegetables,"onion,pyaz,kanda,ullipaya"
+2,Potato,Vegetables,"potato,aloo,alugadda"
+3,Tomato,Vegetables,"tomato,tamatar,thakkali"
+4,Wheat,Grains,"wheat,gehun,godhuma"
+5,Paddy,Grains,"paddy,rice,chawal,dhan"
+6,Cotton,Fiber,"cotton,kapas,patti"
+7,Red Chilli,Spices,"chilli,mirchi,lal mirch"
+8,Maize,Grains,"maize,corn,makka,jonnalu"

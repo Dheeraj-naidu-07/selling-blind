@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mandi Saathi - Selling Blind Agri Decision Engine</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- GLOBAL HEADER - PRESENT ON EVERY SINGLE PAGE OF THE APP -->
+  <header class="app-header">
+    <a href="#" class="brand-logo" onclick="switchView('home-view'); return false;">
+      <svg viewBox="0 0 24 24">
+        <path d="M17,8C8,10 5,16 3,21C3,21 7,21 11,18C11,18 13,20 18,20C21,20 22,17 22,17C22,17 19,17 16,14C19,10 22,7 22,7C22,7 19,8 17,8Z"/>
+      </svg>
+      <span>MANDI SAATHI</span>
+    </a>
+    <nav class="header-nav">
+      <a href="#" class="nav-link" onclick="switchView('form-view'); return false;">Check Price</a>
+      <a href="#" class="nav-link" onclick="scrollToHowItWorks(); return false;">How It Works</a>
+      <div class="lang-dropdown">
+        <span>EN</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </nav>
+  </header>
+
+  <div class="main-container">
+
+    <!-- ================= PAGE 1: HOME VIEW ================= -->
+    <section id="home-view" class="view-section active">
+      <div class="hero-header">
+        <span class="hero-subtitle-tag">` Welcome to `</span>
+        <h1 class="hero-title">Your Mandi Price Guide</h1>
+        <p class="hero-description">Choose how you'd like to explore mandi prices today. Get the best insights, your way.</p>
+      </div>
+
+      <div class="options-grid">
+        <!-- Option 1: Manual Usage -->
+        <div class="option-card">
+          <div>
+            <span class="option-badge green">Option 1</span>
+            <h2 class="option-title">Manual Usage</h2>
+            <p class="option-desc">Explore mandi prices manually by entering crop details, selecting mandis, and checking historical seasonal data.</p>
+          </div>
+          <button class="btn-primary-green" onclick="switchView('form-view')">
+            Go to Check Offer &rarr;
+          </button>
+        </div>
+
+        <!-- Option 2: AI Assistant -->
+        <div class="option-card">
+          <div>
+            <span class="option-badge blue">Option 2</span>
+            <h2 class="option-title">AI Assistant</h2>
+            <p class="option-desc">Ask your AI assistant anything about mandi prices, get instant plain-language answers, insights and recommendations.</p>
+          </div>
+          <button class="btn-primary-blue" onclick="openAiChatModal()">
+            Chat with AI &rarr;
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 2: CHECK OFFER FORM VIEW ================= -->
+    <section id="form-view" class="view-section">
+      <div class="form-wrapper">
+        <div class="offer-card">
+          <h2 class="form-title">Check Mandi Offer</h2>
+          <form id="mandi-offer-form" onsubmit="handleFormSubmit(event)">
+
+            <div class="form-group">
+              <label class="form-label" for="crop-input">Crop</label>
+              <select id="crop-input" class="form-select" required>
+                <option value="Onion" selected>Onion</option>
+                <option value="Potato">Potato</option>
+                <option value="Tomato">Tomato</option>
+                <option value="Wheat">Wheat</option>
+                <option value="Paddy">Paddy</option>
+                <option value="Cotton">Cotton</option>
+                <option value="Red Chilli">Red Chilli</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="quantity-input">Quantity</label>
+              <input type="text" id="quantity-input" class="form-input" value="2,500 kg" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="location-input">Location</label>
+              <div class="input-with-button">
+                <input type="text" id="location-input" class="form-input" value="Hyderabad, Telangana" required>
+                <button type="button" class="btn-icon" onclick="detectBrowserLocation()" title="Detect Geolocation">
+                  📍 Auto
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="price-input">Offered Price</label>
+              <input type="text" id="price-input" class="form-input" value="₹18/kg" required>
+            </div>
+
+            <button type="submit" class="btn-dark" id="btn-check-price">
+              Check Price
+            </button>
+
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 3: PRICE HISTORY & RESULTS DASHBOARD ================= -->
+    <section id="results-view" class="view-section">
+
+      <!-- Subheader top bar -->
+      <div class="dashboard-top-bar">
+        <button class="back-button" onclick="switchView('form-view')">&larr;</button>
+        <div class="dashboard-title-group">
+          <h2>Price History</h2>
+          <p>Track how the price has changed over time</p>
+        </div>
+      </div>
+
+      <!-- Anomaly Recommendation Alert Card -->
+      <div class="alert-card" id="alert-banner">
+        <div class="alert-header">
+          <span style="font-size: 1.4rem;">⚠️</span>
+          <span id="anomaly-badge-text">PRICE LOOKS LOWER THAN USUAL</span>
+        </div>
+        <div class="alert-body">
+          <div class="crop-icon-bubble">🧅</div>
+          <div>
+            <div style="display: flex; align-items: baseline;">
+              <span class="offered-price-display" id="display-offered-price">₹18</span>
+              <span class="offered-price-unit">/kg</span>
+              <span class="diff-badge" id="display-diff-badge">
+                <span>↓</span>
+                <span id="display-diff-text">About 20% below the historical seasonal median</span>
+              </span>
+            </div>
+            <div class="typical-label" id="display-typical-text">
+              Historical median: <strong>₹24.0/kg</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Navigation Cards -->
+      <div class="action-grid">
+        <div class="action-card">
+          <div>
+            <div class="action-card-icon green">📈</div>
+            <h3 class="action-card-title">View Historical Price</h3>
+            <p class="action-card-desc">See how today's price compares with past seasonal prices.</p>
+          </div>
+          <button class="btn-action" onclick="scrollToElement('trend-chart-card')">View Chart &rarr;</button>
+        </div>
+
+        <div class="action-card">
+          <div>
+            <div class="action-card-icon blue">📍</div>
+            <h3 class="action-card-title">Explore Nearby Markets</h3>
+            <p class="action-card-desc">Find nearby mandis and their historical price patterns.</p>
+          </div>
+          <button class="btn-action" onclick="scrollToElement('nearby-mandis-card')">View Markets &rarr;</button>
+        </div>
+
+        <div class="action-card">
+          <div>
+            <div class="action-card-icon purple">💡</div>
+            <h3 class="action-card-title">Why This Signal?</h3>
+            <p class="action-card-desc">Understand the data and statistical analysis behind this result.</p>
+          </div>
+          <button class="btn-action" onclick="scrollToElement('decision-explain-card')">Learn More &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Charts & Distribution Grid -->
+      <div class="charts-grid">
+        <!-- Price Trend Chart -->
+        <div class="chart-card" id="trend-chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title"><span>📈</span> Price Trend</h3>
+            <span style="font-size: 0.85rem; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 4px 12px; border-radius: 9999px;">Last 6 Months</span>
+          </div>
+          <div class="canvas-container">
+            <canvas id="trendChartCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Price Distribution Card & Metrics -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title"><span>📊</span> Price Distribution</h3>
+          </div>
+          <div class="canvas-container" style="height: 140px;">
+            <canvas id="distributionChartCanvas"></canvas>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-pill">
+              <div class="metric-label">Today's offer</div>
+              <div class="metric-value" id="pill-today-offer">₹18/kg</div>
+            </div>
+            <div class="metric-pill">
+              <div class="metric-label">Historical median</div>
+              <div class="metric-value" id="pill-historical-median">₹24.0/kg</div>
+            </div>
+            <div class="metric-pill">
+              <div class="metric-label">Historical typical range</div>
+              <div class="metric-value" id="pill-typical-range">₹20-₹26/kg</div>
+            </div>
+            <div class="metric-pill highlight-red">
+              <div class="metric-label">Difference</div>
+              <div class="metric-value" id="pill-difference">-20%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plain Language Decision Signal Panel -->
+      <div class="section-panel" id="decision-explain-card">
+        <h3 class="panel-title">Decision Signal & Explanation</h3>
+        <p style="font-size: 1.05rem; line-height: 1.6; color: #1e293b; margin-bottom: 16px;" id="decision-message-text">
+          Loading decision analysis...
+        </p>
+        <div style="display: flex; gap: 12px; font-size: 0.9rem; color: #475569;">
+          <div>Data Quality Rating: <strong id="quality-rating-badge" style="color: #047857;">GOOD</strong></div>
+          <div>•</div>
+          <div>Weather Context: <strong id="weather-context-text">Clear in region (28°C)</strong></div>
+        </div>
+      </div>
+
+      <!-- Nearby Mandis Alternative Recommendations -->
+      <div class="section-panel" id="nearby-mandis-card">
+        <h3 class="panel-title">Nearby Reachable Mandis (Historical Performance)</h3>
+        <table class="mandis-table">
+          <thead>
+            <tr>
+              <th>Mandi Name</th>
+              <th>Distance</th>
+              <th>Hist. Seasonal Median</th>
+              <th>Sample Size</th>
+              <th>Data Quality</th>
+            </tr>
+          </thead>
+          <tbody id="nearby-mandis-tbody">
+            <tr>
+              <td colspan="5">Querying nearby mandi database...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Responsible Use Disclaimer -->
+      <div class="disclaimer-box" id="disclaimer-text">
+        Based on historical public mandi data. Historical performance does not guarantee future prices or outcomes.
+      </div>
+
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
