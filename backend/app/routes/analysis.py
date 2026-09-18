@@ -28,8 +28,26 @@ async def analyze_price(req: AnalysisRequest):
     if req.price_unit == "qtl" or req.current_offered_price > 500:
         price_per_kg = req.current_offered_price / 100.0
 
-    lat = req.location.latitude if req.location else 17.3850
-    lon = req.location.longitude if req.location else 78.4867
+    HYDERABAD_LAT, HYDERABAD_LON = 17.3850, 78.4867
+    lat = req.location.latitude if req.location and req.location.latitude is not None else None
+    lon = req.location.longitude if req.location and req.location.longitude is not None else None
+    location_name = req.location.name if req.location and req.location.name else None
+
+    is_default_coords = (lat is None or lon is None or (abs(lat - HYDERABAD_LAT) < 0.0001 and abs(lon - HYDERABAD_LON) < 0.0001))
+    
+    if location_name and location_name.strip():
+        if is_default_coords and "hyderabad" not in location_name.lower():
+            coords = await GeocodingService.forward_geocode(location_name)
+            if coords:
+                lat, lon = coords
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unable to resolve location coordinates for '{location_name}'. Please enter a valid location."
+                )
+
+    if lat is None or lon is None:
+        lat, lon = HYDERABAD_LAT, HYDERABAD_LON
 
     # 2. Statistical Engine Calculation
     hist_results = HistoricalPriceAnalyzer.analyze(norm_crop, price_per_kg)
@@ -81,7 +99,7 @@ async def analyze_price(req: AnalysisRequest):
     }
 
     # 7. AI Explanation Generation via AIService (Calls Ollama on remote Mac 10.10.14.157:11434)
-    ai_explanation = await AIService.generate_explanation(structured_facts)
+    ai_explanation = await AIService.generate_explanation(structured_facts, req.language or "en")
 
     return {
         "status": "success",
@@ -107,7 +125,7 @@ async def analyze_price(req: AnalysisRequest):
         },
         "explanation": ai_explanation,
         "data_info": {
-            "source": "AgMarkNet",
+            "source": "AgMarkNet (Demo Data)",
             "historical_period": "2020-2026"
         }
     }

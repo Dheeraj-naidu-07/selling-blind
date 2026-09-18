@@ -23,20 +23,34 @@ class AIService:
     )
 
     @classmethod
-    async def generate_explanation(cls, structured_facts: dict) -> dict:
+    async def generate_explanation(cls, structured_facts: dict, language: str = "en") -> dict:
         # Check mock mode first
         if settings.AI_MOCK_MODE:
             logger.info("AI_MOCK_MODE is enabled. Returning mock explanation.")
+            if language == "te":
+                msg = f"ఆఫర్ చేసిన ధర ₹{structured_facts.get('current_price')}/కేజీ సాధారణ సీజనల్ సగటు కంటే తక్కువగా ఉంది."
+            elif language == "hi":
+                msg = f"पेश की गई कीमत ₹{structured_facts.get('current_price')}/किग्रा सामान्य मौसमी औसत से कम है।"
+            else:
+                msg = f"The offered price of ₹{structured_facts.get('current_price')}/kg is lower than the typical historical seasonal median."
             return {
-                "text": f"The offered price of ₹{structured_facts.get('current_price')}/kg is lower than the typical historical seasonal median.",
+                "text": msg,
                 "source": "mock"
             }
+
+        lang_instr = "Respond ONLY in English."
+        if language == "te":
+            lang_instr = "Respond ONLY in simple Telugu language suitable for an Indian farmer."
+        elif language == "hi":
+            lang_instr = "Respond ONLY in simple Hindi language suitable for an Indian farmer."
+
+        system_prompt = f"{cls.SYSTEM_PROMPT}\n\n{lang_instr}"
 
         url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/chat"
         payload = {
             "model": settings.OLLAMA_MODEL,
             "messages": [
-                {"role": "system", "content": cls.SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(structured_facts)}
             ],
             "stream": False
@@ -61,8 +75,15 @@ class AIService:
         # Deterministic fallback when remote Ollama is unreachable
         dev_pct = structured_facts.get('deviation_percent', 0.0)
         abs_pct = abs(round(dev_pct, 1))
+        
+        fallback_text = f"The offered price is about {abs_pct}% below the historical seasonal median based on available public mandi data."
+        if language == "te":
+            fallback_text = f"లభ్యమైన మండి డేటా ప్రకారం ఆఫర్ చేసిన ధర చారిత్రక సగటు కంటే దాదాపు {abs_pct}% తక్కువగా ఉంది."
+        elif language == "hi":
+            fallback_text = f"उपलब्ध मंडी आंकड़ों के अनुसार पेश की गई कीमत ऐतिहासिक औसत से लगभग {abs_pct}% कम है।"
+
         return {
-            "text": f"The offered price is about {abs_pct}% below the historical seasonal median based on available public mandi data.",
+            "text": fallback_text,
             "source": "fallback"
         }
 

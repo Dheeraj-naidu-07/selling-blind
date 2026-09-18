@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mandi Saathi - Selling Blind Agri Decision Engine</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -13,18 +14,19 @@
 
   <!-- GLOBAL HEADER - PRESENT ON EVERY SINGLE PAGE OF THE APP -->
   <header class="app-header">
-    <a href="#" class="brand-logo" onclick="switchView('home-view'); return false;">
+    <a href="/" class="brand-logo" onclick="navigateTo('/'); return false;">
       <svg viewBox="0 0 24 24">
         <path d="M17,8C8,10 5,16 3,21C3,21 7,21 11,18C11,18 13,20 18,20C21,20 22,17 22,17C22,17 19,17 16,14C19,10 22,7 22,7C22,7 19,8 17,8Z"/>
       </svg>
-      <span>MANDI SAATHI</span>
+      <span id="brand-name-text">MANDI SAATHI</span>
     </a>
     <nav class="header-nav">
-      <a href="#" class="nav-link" onclick="switchView('form-view'); return false;">Check Price</a>
-      <a href="#" class="nav-link" onclick="scrollToHowItWorks(); return false;">How It Works</a>
-      <div class="lang-dropdown">
-        <span>EN</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      <a href="/form" class="nav-link" id="nav-check-price" onclick="navigateTo('/form'); return false;">Check Price</a>
+      <a href="/" class="nav-link" id="nav-how-it-works" onclick="scrollToHowItWorks(); return false;">How It Works</a>
+      <div class="lang-selector-group" role="radiogroup" aria-label="Language Selector">
+        <button type="button" class="lang-btn active" data-lang="en" onclick="setLanguage('en')" aria-label="English">EN</button>
+        <button type="button" class="lang-btn" data-lang="te" onclick="setLanguage('te')" aria-label="Telugu">తెలుగు</button>
+        <button type="button" class="lang-btn" data-lang="hi" onclick="setLanguage('hi')" aria-label="Hindi">हिन्दी</button>
       </div>
     </nav>
   </header>
@@ -34,20 +36,20 @@
     <!-- ================= PAGE 1: HOME VIEW ================= -->
     <section id="home-view" class="view-section active">
       <div class="hero-header">
-        <span class="hero-subtitle-tag">` Welcome to `</span>
-        <h1 class="hero-title">Your Mandi Price Guide</h1>
-        <p class="hero-description">Choose how you'd like to explore mandi prices today. Get the best insights, your way.</p>
+        <span class="hero-subtitle-tag" id="hero-welcome-tag">Welcome to</span>
+        <h1 class="hero-title" id="hero-title">Your Mandi Price Guide</h1>
+        <p class="hero-description" id="hero-desc">Choose how you'd like to explore mandi prices today. Get the best insights, your way.</p>
       </div>
 
       <div class="options-grid">
         <!-- Option 1: Manual Usage -->
         <div class="option-card">
           <div>
-            <span class="option-badge green">Option 1</span>
-            <h2 class="option-title">Manual Usage</h2>
-            <p class="option-desc">Explore mandi prices manually by entering crop details, selecting mandis, and checking historical seasonal data.</p>
+            <span class="option-badge" id="option1-badge">Option 1</span>
+            <h2 class="option-title" id="option1-title">Manual Usage</h2>
+            <p class="option-desc" id="option1-desc">Explore mandi prices manually by entering crop details, selecting mandis, and checking historical seasonal data.</p>
           </div>
-          <button class="btn-primary-green" onclick="switchView('form-view')">
+          <button class="btn-primary-green" id="btn-manual-check" onclick="navigateTo('/form')">
             Go to Check Offer &rarr;
           </button>
         </div>
@@ -55,11 +57,11 @@
         <!-- Option 2: AI Assistant -->
         <div class="option-card">
           <div>
-            <span class="option-badge blue">Option 2</span>
-            <h2 class="option-title">AI Assistant</h2>
-            <p class="option-desc">Ask your AI assistant anything about mandi prices, get instant plain-language answers, insights and recommendations.</p>
+            <span class="option-badge" id="option2-badge">Option 2</span>
+            <h2 class="option-title" id="option2-title">AI Assistant</h2>
+            <p class="option-desc" id="option2-desc">Ask your AI assistant anything about mandi prices, get instant plain-language answers, insights and recommendations.</p>
           </div>
-          <button class="btn-primary-blue" onclick="openAiChatModal()">
+          <button class="btn-primary-blue" id="btn-ai-chat" onclick="openAiChatModal()">
             Chat with AI &rarr;
           </button>
         </div>
@@ -70,39 +72,40 @@
     <section id="form-view" class="view-section">
       <div class="form-wrapper">
         <div class="offer-card">
-          <h2 class="form-title">Check Mandi Offer</h2>
+          <h2 class="form-title" id="form-title">Check Mandi Offer</h2>
+          <div id="form-error-banner" style="display:none; background:#fef2f2; border:1.5px solid #f87171; color:#991b1b; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px; font-weight:600; text-align:left; line-height:1.4;"></div>
           <form id="mandi-offer-form" onsubmit="handleFormSubmit(event)">
 
             <div class="form-group">
-              <label class="form-label" for="crop-input">Crop</label>
+              <label class="form-label" id="label-crop" for="crop-input">Crop</label>
               <select id="crop-input" class="form-select" required>
-                <option value="Onion" selected>Onion</option>
-                <option value="Potato">Potato</option>
-                <option value="Tomato">Tomato</option>
-                <option value="Wheat">Wheat</option>
-                <option value="Paddy">Paddy</option>
-                <option value="Cotton">Cotton</option>
-                <option value="Red Chilli">Red Chilli</option>
+                <option value="Onion" selected id="opt-onion">Onion</option>
+                <option value="Potato" id="opt-potato">Potato</option>
+                <option value="Tomato" id="opt-tomato">Tomato</option>
+                <option value="Wheat" id="opt-wheat">Wheat</option>
+                <option value="Paddy" id="opt-paddy">Paddy</option>
+                <option value="Cotton" id="opt-cotton">Cotton</option>
+                <option value="Red Chilli" id="opt-chilli">Red Chilli</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="quantity-input">Quantity</label>
+              <label class="form-label" id="label-quantity" for="quantity-input">Quantity</label>
               <input type="text" id="quantity-input" class="form-input" value="2,500 kg" required>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="location-input">Location</label>
+              <label class="form-label" id="label-location" for="location-input">Location</label>
               <div class="input-with-button">
                 <input type="text" id="location-input" class="form-input" value="Hyderabad, Telangana" required>
-                <button type="button" class="btn-icon" onclick="detectBrowserLocation()" title="Detect Geolocation">
+                <button type="button" class="btn-icon" id="btn-auto-location" onclick="detectBrowserLocation()" title="Detect Geolocation">
                   📍 Auto
                 </button>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="price-input">Offered Price</label>
+              <label class="form-label" id="label-price" for="price-input">Offered Price</label>
               <input type="text" id="price-input" class="form-input" value="₹18/kg" required>
             </div>
 
@@ -115,39 +118,140 @@
       </div>
     </section>
 
-    <!-- ================= PAGE 3: PRICE HISTORY & RESULTS DASHBOARD ================= -->
+    <!-- ================= PAGE 3: MAIN PRICE ANALYSIS DASHBOARD ================= -->
     <section id="results-view" class="view-section">
 
       <!-- Subheader top bar -->
       <div class="dashboard-top-bar">
-        <button class="back-button" onclick="switchView('form-view')">&larr;</button>
+        <button class="back-button" onclick="navigateTo('/form')">&larr;</button>
         <div class="dashboard-title-group">
-          <h2>Price History</h2>
-          <p>Track how the price has changed over time</p>
+          <h2 id="results-title">Price Analysis</h2>
+          <p id="results-subtitle">Review price signal and explore options</p>
         </div>
       </div>
 
-      <!-- Anomaly Recommendation Alert Card -->
-      <div class="alert-card" id="alert-banner">
-        <div class="alert-header">
-          <span style="font-size: 1.4rem;">⚠️</span>
-          <span id="anomaly-badge-text">PRICE LOOKS LOWER THAN USUAL</span>
-        </div>
-        <div class="alert-body">
-          <div class="crop-icon-bubble">🧅</div>
-          <div>
-            <div style="display: flex; align-items: baseline;">
-              <span class="offered-price-display" id="display-offered-price">₹18</span>
-              <span class="offered-price-unit">/kg</span>
-              <span class="diff-badge" id="display-diff-badge">
-                <span>↓</span>
-                <span id="display-diff-text">About 20% below the historical seasonal median</span>
-              </span>
-            </div>
-            <div class="typical-label" id="display-typical-text">
-              Historical median: <strong>₹24.0/kg</strong>
+      <!-- Interactive Price Signal Dashboard Panel -->
+      <div class="mandi-dashboard-container" id="alert-banner">
+
+        <!-- Top Header Bar: Crop & Location Context -->
+        <div class="dash-top-header">
+          <div class="dash-header-left">
+            <div class="crop-icon-bubble" id="hero-crop-bubble">🧅</div>
+            <div>
+              <div class="dash-crop-name" id="hero-crop-tag">Onion</div>
+              <div class="dash-location-sub" id="hero-location-name">Hyderabad, Telangana</div>
             </div>
           </div>
+          <div class="hero-status-pill green" id="hero-status-pill">
+            <span class="status-pulse-dot"></span>
+            <span id="anomaly-badge-text">PRICE IS WITHIN NORMAL RANGE</span>
+          </div>
+        </div>
+
+        <!-- 2x2 Responsive Dashboard Grid -->
+        <div class="dash-grid-layout">
+
+          <!-- TILE 1: CURRENT OFFER & SIGNAL GAUGE -->
+          <div class="dash-tile tile-offer-gauge">
+            <div class="dash-tile-left">
+              <span class="tile-caption">CURRENT OFFER</span>
+              <div class="hero-price-wrap">
+                <span class="offered-price-display" id="display-offered-price">₹18.00</span>
+                <span class="offered-price-unit">/kg</span>
+              </div>
+              <div class="offer-diff-badge red" id="display-diff-badge">
+                <span id="display-diff-arrow">↓</span>
+                <span id="display-diff-text">20%</span>
+              </div>
+              <div class="offer-subtext" id="hero-offer-subtext">BELOW SEASONAL NORMAL</div>
+            </div>
+
+            <div class="dash-tile-right gauge-wrapper">
+              <svg class="speedometer-svg" viewBox="0 0 160 90">
+                <path class="gauge-bg-track" d="M 20 80 A 60 60 0 0 1 140 80" fill="none" stroke="#e4e4e7" stroke-width="12" stroke-linecap="round"/>
+                <path class="gauge-zone-red" d="M 20 80 A 60 60 0 0 1 55 28" fill="none" stroke="#fca5a5" stroke-width="12"/>
+                <path class="gauge-zone-yellow" d="M 55 28 A 60 60 0 0 1 105 28" fill="none" stroke="#fde68a" stroke-width="12"/>
+                <path class="gauge-zone-green" d="M 105 28 A 60 60 0 0 1 140 80" fill="none" stroke="#6ee7b7" stroke-width="12"/>
+                <g class="gauge-needle-group" id="gauge-needle" style="transform: rotate(45deg); transform-origin: 80px 80px; transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                  <line x1="80" y1="80" x2="30" y2="80" stroke="#18181b" stroke-width="3.5" stroke-linecap="round"/>
+                  <circle cx="80" cy="80" r="6" fill="#18181b"/>
+                </g>
+              </svg>
+              <div class="gauge-pill" id="hero-gauge-pill">
+                <span id="hero-gauge-arrow">↓</span> <span id="hero-gauge-text">Lower than expected</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TILE 2: PRICE POSITION GRADIENT BAR -->
+          <div class="dash-tile tile-position">
+            <div class="tile-header">
+              <span class="tile-icon">📊</span>
+              <span class="tile-title">PRICE POSITION</span>
+            </div>
+            
+            <div class="gradient-position-container">
+              <div class="grad-labels">
+                <span class="lbl-low">LOW</span>
+                <span class="lbl-normal">NORMAL</span>
+                <span class="lbl-high">HIGH</span>
+              </div>
+              <div class="grad-track">
+                <div class="grad-offer-pin" id="hero-offer-pin">
+                  <div class="pin-badge"><span id="hero-pin-val">₹18</span> <span class="pin-sub">CURRENT</span></div>
+                  <div class="pin-dot"></div>
+                </div>
+                <div class="grad-median-tick" id="hero-median-tick">
+                  <div class="tick-line"></div>
+                  <div class="tick-label"><span id="hero-tick-val">₹22.50</span> <span class="tick-sub">TYPICAL</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TILE 3: HISTORICAL BENCHMARK -->
+          <div class="dash-tile tile-benchmark">
+            <div class="tile-header">
+              <span class="tile-icon">📄</span>
+              <span class="tile-title">HISTORICAL BENCHMARK</span>
+            </div>
+            <div class="split-metrics-row">
+              <div class="metric-block">
+                <span class="metric-caption">Seasonal Median</span>
+                <div class="metric-val" id="dash-bench-median">₹24.00/kg</div>
+              </div>
+              <div class="metric-divider"></div>
+              <div class="metric-block">
+                <span class="metric-caption">Current Market</span>
+                <div class="metric-val" id="dash-bench-current">₹18.00/kg</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TILE 4: PRICE GAP & LIVE OPEN-METEO WEATHER CONTEXT -->
+          <div class="dash-tile tile-gap-weather">
+            <div class="tile-header">
+              <span class="tile-icon">🔀</span>
+              <span class="tile-title">PRICE GAP &amp; WEATHER</span>
+            </div>
+            <div class="split-metrics-row">
+              <div class="metric-block">
+                <span class="metric-caption">Price Gap</span>
+                <div class="metric-val gap-val" id="dash-gap-diff">-₹6.00/kg</div>
+                <span class="metric-sub" id="dash-gap-sub">below typical</span>
+              </div>
+              <div class="metric-divider"></div>
+              <div class="metric-block">
+                <span class="metric-caption">Live Region Weather</span>
+                <div class="weather-val-row">
+                  <span class="weather-icon-inline" id="dash-weather-icon">⛅</span>
+                  <span class="weather-temp" id="dash-weather-temp">26°C</span>
+                </div>
+                <span class="metric-sub" id="dash-weather-cond">Partly cloudy</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -155,118 +259,351 @@
       <div class="action-grid">
         <div class="action-card">
           <div>
-            <div class="action-card-icon green">📈</div>
-            <h3 class="action-card-title">View Historical Price</h3>
-            <p class="action-card-desc">See how today's price compares with past seasonal prices.</p>
+            <div class="action-card-icon">📈</div>
+            <h3 class="action-card-title" id="action1-title">View Historical Price</h3>
+            <p class="action-card-desc" id="action1-desc">See how today's price compares with past seasonal prices.</p>
           </div>
-          <button class="btn-action" onclick="scrollToElement('trend-chart-card')">View Chart &rarr;</button>
+          <button class="btn-action" id="btn-view-chart" onclick="navigateTo('/historical-price')">View Chart &rarr;</button>
         </div>
 
         <div class="action-card">
           <div>
-            <div class="action-card-icon blue">📍</div>
-            <h3 class="action-card-title">Explore Nearby Markets</h3>
-            <p class="action-card-desc">Find nearby mandis and their historical price patterns.</p>
+            <div class="action-card-icon">📍</div>
+            <h3 class="action-card-title" id="action2-title">Explore Nearby Markets</h3>
+            <p class="action-card-desc" id="action2-desc">Find nearby mandis and their historical price patterns.</p>
           </div>
-          <button class="btn-action" onclick="scrollToElement('nearby-mandis-card')">View Markets &rarr;</button>
+          <button class="btn-action" id="btn-view-markets" onclick="navigateTo('/nearby-markets')">View Markets &rarr;</button>
         </div>
 
         <div class="action-card">
           <div>
-            <div class="action-card-icon purple">💡</div>
-            <h3 class="action-card-title">Why This Signal?</h3>
-            <p class="action-card-desc">Understand the data and statistical analysis behind this result.</p>
+            <div class="action-card-icon">💡</div>
+            <h3 class="action-card-title" id="action3-title">Why This Signal?</h3>
+            <p class="action-card-desc" id="action3-desc">Understand the data and statistical analysis behind this result.</p>
           </div>
-          <button class="btn-action" onclick="scrollToElement('decision-explain-card')">Learn More &rarr;</button>
+          <button class="btn-action" id="btn-learn-more" onclick="navigateTo('/why-this-signal')">Learn More &rarr;</button>
         </div>
       </div>
 
-      <!-- Charts & Distribution Grid -->
+      <!-- Responsible Use Disclaimer -->
+      <div class="disclaimer-box" id="disclaimer-text">
+        Based on historical public AgMarkNet (Demo Data). Historical performance does not guarantee future prices or outcomes.
+      </div>
+
+    </section>
+
+    <!-- ================= SEPARATE PAGE 1: /historical-price ================= -->
+    <section id="historical-price-view" class="view-section">
+      <div class="dashboard-top-bar">
+        <button class="back-button" id="hp-back-btn" onclick="navigateTo('/results')">&larr; Back to Price Analysis</button>
+        <div class="dashboard-title-group">
+          <h2 id="hp-title">Price History</h2>
+          <p id="hp-subtitle">Track how the price has changed over time</p>
+        </div>
+      </div>
+
       <div class="charts-grid">
         <!-- Price Trend Chart -->
-        <div class="chart-card" id="trend-chart-card">
+        <div class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title"><span>📈</span> Price Trend</h3>
-            <span style="font-size: 0.85rem; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 4px 12px; border-radius: 9999px;">Last 6 Months</span>
+            <h3 class="chart-title" id="hp-trend-title"><span>📈</span> Price Trend</h3>
+            <span id="hp-trend-tag" class="live-map-tag">Last 6 Months</span>
           </div>
           <div class="canvas-container">
-            <canvas id="trendChartCanvas"></canvas>
+            <canvas id="hpTrendChartCanvas"></canvas>
           </div>
         </div>
 
         <!-- Price Distribution Card & Metrics -->
         <div class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title"><span>📊</span> Price Distribution</h3>
+            <h3 class="chart-title" id="hp-dist-title"><span>📊</span> Price Distribution</h3>
           </div>
+          <p id="hp-dist-subtitle" style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 12px;">How the current price compares to historical data</p>
           <div class="canvas-container" style="height: 140px;">
-            <canvas id="distributionChartCanvas"></canvas>
+            <canvas id="hpDistributionChartCanvas"></canvas>
           </div>
 
           <div class="metrics-grid">
             <div class="metric-pill">
-              <div class="metric-label">Today's offer</div>
-              <div class="metric-value" id="pill-today-offer">₹18/kg</div>
+              <div class="metric-label" id="pill-label-today">Today's offer</div>
+              <div class="metric-value" id="hp-current-price">₹18/kg</div>
             </div>
             <div class="metric-pill">
-              <div class="metric-label">Historical median</div>
-              <div class="metric-value" id="pill-historical-median">₹24.0/kg</div>
+              <div class="metric-label" id="pill-label-median">Historical median</div>
+              <div class="metric-value" id="hp-historical-median">₹24.0/kg</div>
             </div>
             <div class="metric-pill">
-              <div class="metric-label">Historical typical range</div>
-              <div class="metric-value" id="pill-typical-range">₹20-₹26/kg</div>
+              <div class="metric-label" id="pill-label-range">Historical typical range</div>
+              <div class="metric-value" id="hp-typical-range">₹20-₹26/kg</div>
             </div>
             <div class="metric-pill highlight-red">
-              <div class="metric-label">Difference</div>
-              <div class="metric-value" id="pill-difference">-20%</div>
+              <div class="metric-label" id="pill-label-diff">Difference</div>
+              <div class="metric-value" id="hp-difference">-20%</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Plain Language Decision Signal Panel -->
-      <div class="section-panel" id="decision-explain-card">
-        <h3 class="panel-title">Decision Signal & Explanation</h3>
-        <p style="font-size: 1.05rem; line-height: 1.6; color: #1e293b; margin-bottom: 16px;" id="decision-message-text">
-          Loading decision analysis...
-        </p>
-        <div style="display: flex; gap: 12px; font-size: 0.9rem; color: #475569;">
-          <div>Data Quality Rating: <strong id="quality-rating-badge" style="color: #047857;">GOOD</strong></div>
-          <div>•</div>
-          <div>Weather Context: <strong id="weather-context-text">Clear in region (28°C)</strong></div>
+      <div class="disclaimer-box" id="hp-disclaimer-text">
+        Based on historical public AgMarkNet mandi data. Historical seasonal analysis helps identify price volatility trends.
+      </div>
+    </section>
+
+    <!-- ================= SEPARATE PAGE 2: /nearby-markets ================= -->
+    <section id="nearby-markets-view" class="view-section">
+      <div class="dashboard-top-bar">
+        <button class="back-button" id="nm-back-btn" onclick="navigateTo('/results')">&larr; Back to Price Analysis</button>
+        <div class="dashboard-title-group">
+          <h2 id="nm-title">Nearby Mandi Opportunities</h2>
+          <p id="nm-subtitle">Compare reachable mandis and their historical price performance.</p>
         </div>
       </div>
 
-      <!-- Nearby Mandis Alternative Recommendations -->
-      <div class="section-panel" id="nearby-mandis-card">
-        <h3 class="panel-title">Nearby Reachable Mandis (Historical Performance)</h3>
-        <table class="mandis-table">
-          <thead>
-            <tr>
-              <th>Mandi Name</th>
-              <th>Distance</th>
-              <th>Hist. Seasonal Median</th>
-              <th>Sample Size</th>
-              <th>Data Quality</th>
-            </tr>
-          </thead>
-          <tbody id="nearby-mandis-tbody">
-            <tr>
-              <td colspan="5">Querying nearby mandi database...</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="nearby-layout-grid">
+        <!-- LEFT SIDE: MAP COMPONENT -->
+        <div class="map-card">
+          <div class="map-header">
+            <h3 class="panel-title" id="nm-map-title" style="margin-bottom: 0;">📍 Interactive Market Map</h3>
+            <span class="live-map-tag" id="nm-map-tag">Live Distances</span>
+          </div>
+
+          <div class="map-visual-container" style="position: relative;">
+            <div id="interactive-leaflet-map" style="width: 100%; height: 480px; z-index: 1;"></div>
+            <!-- Floating Map Controls Overlay -->
+            <div class="map-controls" style="z-index: 1000;">
+              <button type="button" class="map-ctrl-btn" onclick="zoomInteractiveMap(1)">+</button>
+              <button type="button" class="map-ctrl-btn" onclick="zoomInteractiveMap(-1)">&minus;</button>
+              <button type="button" class="map-ctrl-btn wide" id="btn-map-recenter" onclick="recenterInteractiveMap()">🎯 Recenter</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDE: HISTORICAL OPTIONS CARDS -->
+        <div class="historical-options-panel">
+          <div style="margin-bottom: 20px;">
+            <h3 class="panel-title" id="nm-hist-options-title" style="margin-bottom: 4px;">Historical Options</h3>
+            <p id="nm-hist-options-subtitle" style="font-size: 0.88rem; color: var(--color-text-muted);">Compare past trends and find the best deal</p>
+          </div>
+
+          <div class="mandi-options-list" id="mandi-options-list">
+            <!-- Dynamic Mandi Cards / Exception Error loaded via JavaScript -->
+          </div>
+
+          <div style="margin-top: 20px; text-align: right;">
+            <button class="btn-secondary-link" id="btn-view-price-history" onclick="navigateTo('/historical-price')">
+              View Price History &rarr;
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Responsible Use Disclaimer -->
-      <div class="disclaimer-box" id="disclaimer-text">
-        Based on historical public mandi data. Historical performance does not guarantee future prices or outcomes.
+      <div class="disclaimer-box" id="nm-disclaimer-text" style="margin-top: 24px;">
+        Based on historical public mandi data. Physical travel distance calculated using Haversine formula.
       </div>
-
     </section>
 
+    <!-- ================= SEPARATE PAGE 3: /why-this-signal ================= -->
+    <section id="why-this-signal-view" class="view-section">
+      <!-- Top Navigation & Title Bar -->
+      <div class="dashboard-top-bar">
+        <button class="back-button" id="why-back-btn" onclick="navigateTo('/results')">&larr; Back to Price Analysis</button>
+        <div class="dashboard-title-group">
+          <h2 id="why-title">Why is this market shown?</h2>
+          <p id="why-subtitle">We show you this market because it matches your location, price trends and has reliable historical data.</p>
+        </div>
+      </div>
+
+      <!-- TIER 1: Offer vs Historical Median Hero Comparison Block -->
+      <div class="wts-hero-compare-container">
+        <!-- Left Card: Your Offer -->
+        <div class="wts-compare-card offer">
+          <div class="wts-card-top-header">
+            <span class="wts-card-icon">🪙</span>
+            <span class="wts-card-subtitle">YOUR OFFER</span>
+          </div>
+          <div class="wts-card-main-price" id="wts-offer-price">₹18.00/kg</div>
+          <div class="wts-card-tag">TODAY</div>
+        </div>
+
+        <!-- Center Signal Badge Connector -->
+        <div class="wts-signal-badge-connector">
+          <div class="wts-badge-diff-val" id="wts-diff-diff">+₹5.20/kg</div>
+          <div class="wts-signal-badge green" id="wts-badge-main">
+            <span class="wts-badge-arrow" id="wts-badge-arrow">↗</span>
+            <span class="wts-badge-pct" id="wts-badge-pct">+29%</span>
+            <span class="wts-badge-sub" id="wts-badge-sub">HISTORICALLY HIGHER</span>
+          </div>
+        </div>
+
+        <!-- Right Card: Historical Median -->
+        <div class="wts-compare-card median">
+          <div class="wts-card-top-header">
+            <span class="wts-card-icon">📅</span>
+            <span class="wts-card-subtitle" id="summary-market-price-label">HISTORICAL MEDIAN</span>
+          </div>
+          <div class="wts-card-main-price" id="wts-summary-price">₹23.20/kg</div>
+          <div class="wts-card-tag">THIS PERIOD</div>
+        </div>
+      </div>
+
+      <!-- TIER 2: Flow Diagram ("Why Does It Show Up?") -->
+      <div class="wts-flow-section">
+        <div class="wts-flow-header">
+          <span class="wts-flow-icon">💡</span>
+          <h3 class="wts-flow-title">Why Does It Show Up?</h3>
+        </div>
+
+        <!-- 3 Factors Row -->
+        <div class="wts-factors-row">
+          <!-- Factor 1: Proximity -->
+          <div class="wts-factor-card green-tint">
+            <div class="wts-factor-icon-wrap green">📍</div>
+            <div class="wts-factor-val" id="wts-summary-mandi-dist">15 km</div>
+            <div class="wts-factor-lbl" id="why-badge1">NEARBY</div>
+          </div>
+
+          <!-- Factor 2: Signal -->
+          <div class="wts-factor-card purple-tint">
+            <div class="wts-factor-icon-wrap purple">📈</div>
+            <div class="wts-factor-val" id="wts-factor-signal">+29%</div>
+            <div class="wts-factor-lbl" id="why-badge2">HISTORICAL SIGNAL</div>
+          </div>
+
+          <!-- Factor 3: Observations -->
+          <div class="wts-factor-card amber-tint">
+            <div class="wts-factor-icon-wrap amber">📋</div>
+            <div class="wts-factor-val" id="wts-obs-count">120+</div>
+            <div class="wts-factor-lbl" id="why-badge3">OBSERVATIONS</div>
+          </div>
+        </div>
+
+        <!-- Connecting Lines SVG to Target -->
+        <div class="wts-flow-connectors">
+          <svg class="wts-connector-svg" viewBox="0 0 600 45" preserveAspectRatio="none">
+            <path d="M 100 0 C 100 25, 300 10, 300 40" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4"/>
+            <path d="M 300 0 L 300 40" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="4,4"/>
+            <path d="M 500 0 C 500 25, 300 10, 300 40" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4"/>
+          </svg>
+        </div>
+
+        <!-- Target Recommended Mandi Pill -->
+        <div class="wts-mandi-pill-target">
+          <div class="wts-target-icon">🏪</div>
+          <div class="wts-target-info">
+            <div class="wts-target-name" id="wts-summary-mandi-name">Mandi A</div>
+            <div class="wts-target-tag">recommended market</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 3: Data Context, AI Intelligence & Considerations -->
+      <div class="wts-bottom-grid">
+        <!-- Data Context Box -->
+        <div class="wts-data-context-card">
+          <div class="wts-context-header">
+            <span class="wts-context-icon">🪙</span>
+            <h4>DATA CONTEXT</h4>
+          </div>
+          <ul class="wts-context-list">
+            <li>
+              <span class="wts-check-icon">✓</span>
+              <span id="wts-ctx-item1">Prices have historically been higher during this period</span>
+            </li>
+            <li>
+              <span class="wts-check-icon">✓</span>
+              <span id="wts-ctx-item2">Multiple observations provide a meaningful comparison</span>
+            </li>
+            <li>
+              <span class="wts-check-icon">✓</span>
+              <span>Verified against AgMarkNet public market datasets</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- AI Explanation & Considerations Column -->
+        <div class="wts-ai-cautions-grid">
+          <!-- AI Explanation Card -->
+          <div class="ai-intelligence-card">
+            <div class="ai-card-header">
+              <h4 id="why-ai-title" class="ai-card-title">AI Explanation (Qwen3:8B)</h4>
+              <span class="ai-live-tag">LIVE ANALYSIS</span>
+            </div>
+            
+            <div class="ai-text-box">
+              <p id="wts-explanation-text" class="ai-explanation-text">
+                Loading AI intelligence analysis...
+              </p>
+            </div>
+
+            <div class="ai-meta-grid">
+              <div id="wts-quality-rating-container" class="ai-meta-pill">
+                <span id="wts-lbl-quality">Data Quality Rating:</span>
+                <strong id="wts-quality-rating">HIGH (0.86)</strong>
+              </div>
+              <div id="wts-ai-provider-container" class="ai-meta-pill">
+                <span id="wts-lbl-provider">AI Provider:</span>
+                <strong id="wts-ai-provider">ollama (Qwen3:8B)</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Market Considerations Card -->
+          <div class="market-considerations-card">
+            <h4 class="considerations-title">💡 Important Considerations</h4>
+            <div class="consideration-item">
+              <span class="consideration-icon">⚠️</span>
+              <div>
+                <h5 class="why-warning-title" id="why-warn1-title">Today's price may differ</h5>
+                <p class="why-warning-desc" id="why-warn1-desc">Prices can change based on market demand, weather, and other factors.</p>
+              </div>
+            </div>
+            <div class="consideration-item">
+              <span class="consideration-icon">🚚</span>
+              <div>
+                <h5 class="why-warning-title" id="why-warn2-title">Transport and market charges are not included</h5>
+                <p class="why-warning-desc" id="why-warn2-desc">The price shown does not include any transportation or market fees.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsible Use Disclaimer Callout -->
+      <div class="disclaimer-box" id="why-disclaimer-text">
+        Based on historical public mandi data. Historical performance does not guarantee future prices or outcomes.
+      </div>
+    </section>
+
+  <!-- Fullscreen Analysis Loading Modal Overlay -->
+  <div id="analysis-loader-overlay" class="loader-overlay" style="display: none;">
+    <div class="loader-modal-card">
+      <svg class="loader" viewBox="0 0 52 52">
+        <circle class="loader__motion-thick" cx="26" cy="26" r="24.5" fill="none" stroke="#18181b" stroke-width="3" stroke-dasharray="153.94 153.94" stroke-dashoffset="153.94" stroke-linecap="round"/>
+        <circle class="loader__motion-medium" cx="26" cy="26" r="24.5" fill="none" stroke="#71717a" stroke-width="2" stroke-dasharray="153.94 153.94" stroke-dashoffset="153.94" stroke-linecap="round"/>
+        <circle class="loader__motion-thin" cx="26" cy="26" r="24.5" fill="none" stroke="#e4e4e7" stroke-width="1" stroke-dasharray="153.94 153.94" stroke-dashoffset="153.94" stroke-linecap="round"/>
+        <g class="loader__model">
+          <path class="loader__sand-mound-top" d="M 6 12 Q 12.25 15 18.5 12 L 18.5 6 L 6 6 Z" fill="#18181b"/>
+          <path class="loader__sand-fill" d="M 6 6 L 18.5 6 L 18.5 16.75 L 6 16.75 Z" fill="#18181b" stroke="#18181b" stroke-dasharray="55 55" stroke-dashoffset="55"/>
+          <path class="loader__sand-line-left" d="M 7 7 L 7 16" stroke="#ffffff" stroke-width="1" stroke-dasharray="53 53"/>
+          <path class="loader__sand-line-right" d="M 17.5 7 L 17.5 16" stroke="#ffffff" stroke-width="1" stroke-dasharray="14 14"/>
+          <path class="loader__sand-grain-left" d="M 9 10 L 9 14" stroke="#ffffff" stroke-width="1" stroke-dasharray="29 29"/>
+          <path class="loader__sand-grain-right" d="M 15 10 L 15 14" stroke="#ffffff" stroke-width="1" stroke-dasharray="27 27"/>
+          <path class="loader__sand-drop" d="M 12.25 16.75 L 12.25 27.5" stroke="#18181b" stroke-width="1.5" stroke-dasharray="107 107" stroke-dashoffset="1"/>
+          <path class="loader__sand-mound-bottom" d="M 6 31.5 Q 12.25 27.5 18.5 31.5 L 18.5 32 L 6 32 Z" fill="#18181b"/>
+          <path d="M 5 5 L 19.5 5 L 19.5 7 L 14 14 L 14 19.5 L 19.5 26.5 L 19.5 28.5 L 5 28.5 L 5 26.5 L 10.5 19.5 L 10.5 14 L 5 7 Z" fill="none" stroke="#18181b" stroke-width="1.5" stroke-linejoin="round"/>
+          <line class="loader__glare-top" x1="7" y1="8" x2="10" y2="12" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+          <line class="loader__glare-bottom" x1="14.5" y1="21.5" x2="17.5" y2="25.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <div class="loader-text-group">
+        <h3 class="loader-status-title" id="loader-status-title">Analyzing Mandi Prices...</h3>
+        <p class="loader-status-sub" id="loader-status-sub">Fetching AgMarkNet historical data &amp; Open-Meteo weather context</p>
+      </div>
+    </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -34,7 +34,7 @@ const cropsData = parseCSV(path.join(dataDir, 'demo_crops.csv'));
 const mandisData = parseCSV(path.join(dataDir, 'demo_mandis.csv'));
 const pricesData = parseCSV(path.join(dataDir, 'demo_prices.csv'));
 
-// Crop normalization
+// Crop normalization & catalog
 const knownCrops = {
   'onion': { id: 1, name: 'Onion', category: 'Vegetables', aliases: ['pyaz', 'kanda', 'ullipaya'] },
   'potato': { id: 2, name: 'Potato', category: 'Vegetables', aliases: ['aloo', 'alugadda'] },
@@ -69,16 +69,121 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// AI Service Call (Remote Ollama on Mac 10.10.14.157:11434)
-async function generateAiExplanation(structuredFacts) {
+// 1. LIVE NOMINATIM REVERSE & FORWARD GEOCODING API
+async function reverseGeocode(lat, lon) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+      headers: { 'User-Agent': 'SellingBlindMandiSaathi/1.0' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const city = addr.city || addr.town || addr.village || addr.county || 'Hyderabad';
+      const state = addr.state || 'Telangana';
+      const country = addr.country || 'India';
+      return `${city}, ${state}, ${country}`;
+    }
+  } catch (err) {
+    console.log('[Geocoding API Notice] Nominatim fallback used:', err.message);
+  }
+  return `Location (${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)})`;
+}
+
+async function forwardGeocode(locationName) {
+  if (!locationName || typeof locationName !== 'string' || !locationName.trim()) {
+    return null;
+  }
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName.trim())}&format=json&limit=1`, {
+      headers: { 'User-Agent': 'SellingBlindMandiSaathi/1.0' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+          console.log(`[Geocoding API] Resolved '${locationName}' to coordinates: (${lat}, ${lon})`);
+          return { latitude: lat, longitude: lon, displayName: data[0].display_name };
+        }
+      }
+    }
+  } catch (err) {
+    console.log('[Geocoding API Notice] Forward geocoding failed:', err.message);
+  }
+  return null;
+}
+
+// 2. LIVE OPEN-METEO WEATHER CONTEXT API
+async function getWeather(lat, lon) {
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+    if (res.ok) {
+      const data = await res.json();
+      const curr = data.current_weather || {};
+      const temp = curr.temperature || 26.0;
+      const code = curr.weathercode || 0;
+      let cond = 'Clear';
+      if ([1, 2, 3].includes(code)) cond = 'Partly cloudy';
+      else if ([51, 53, 55, 61, 63, 65, 80, 81].includes(code)) cond = 'Rain showers expected';
+      return {
+        available: true,
+        temperature: Number(temp),
+        precipitation: code === 0 ? 0 : 0.2,
+        condition: cond,
+        message: `Live weather context: ${cond} (${temp}°C) in region.`
+      };
+    }
+  } catch (err) {
+    console.log('[Weather API Notice] Open-Meteo fallback used:', err.message);
+  }
+  return {
+    available: false,
+    message: 'Weather data temporarily unavailable'
+  };
+}
+
+// 3. LIVE AGMARKNET PUBLIC API FETCHING
+async function fetchLiveAgMarkNet(cropName) {
+  try {
+    const apiKey = process.env.AGMARKNET_API_KEY || process.env.DATA_GOV_API_KEY || "579b464db66ec23bdd000001cdd394632b774f197bd7677b3d7e8d76";
+    const res = await fetch(`https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${apiKey}&format=json&limit=50&filters[commodity]=${encodeURIComponent(cropName)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.records && data.records.length > 0) {
+        console.log(`[AgMarkNet API] Fetched ${data.records.length} live records for ${cropName}`);
+        return data.records;
+      }
+    }
+  } catch (err) {
+    console.log('[AgMarkNet API Notice] Live API fetch fallback:', err.message);
+  }
+  return [];
+}
+
+// 4. LIVE REMOTE OLLAMA QWEN3:8B AI INFERENCE SERVICE
+async function generateAiExplanation(structuredFacts, language = 'en') {
   if (AI_MOCK_MODE) {
+    if (language === 'te') {
+      return { text: `ఆఫర్ చేసిన ధర ₹${structuredFacts.current_price}/కేజీ సాధారణ సీజనల్ సగటు కంటే తక్కువగా ఉంది.`, source: "mock" };
+    } else if (language === 'hi') {
+      return { text: `पेश की गई कीमत ₹${structuredFacts.current_price}/किग्रा सामान्य मौसमी औसत से कम है।`, source: "mock" };
+    }
     return {
       text: `The offered price of ₹${structuredFacts.current_price}/kg is lower than the typical historical seasonal median.`,
       source: "mock"
     };
   }
 
+  let langInstruction = "Respond ONLY in English.";
+  if (language === 'te') {
+    langInstruction = "Respond ONLY in simple Telugu language suitable for an Indian farmer.";
+  } else if (language === 'hi') {
+    langInstruction = "Respond ONLY in simple Hindi language suitable for an Indian farmer.";
+  }
+
   const systemPrompt = "You are the explanation layer for a mandi price intelligence system.\n\n" +
+                       langInstruction + "\n\n" +
                        "Use ONLY the supplied structured facts.\n\n" +
                        "Do not invent or modify:\n" +
                        "- prices\n- percentages\n- distances\n- historical statistics\n- confidence values\n- mandi information\n\n" +
@@ -109,7 +214,6 @@ async function generateAiExplanation(structuredFacts) {
     if (res.ok) {
       const data = await res.json();
       const message = data.message || {};
-      // ONLY return message.content (ignore message.thinking)
       const content = (message.content || '').trim();
       if (content) {
         return { text: content, source: "ollama" };
@@ -117,12 +221,19 @@ async function generateAiExplanation(structuredFacts) {
     }
   } catch (err) {
     clearTimeout(timeoutId);
+    console.log('[Ollama AI Notice] Remote Qwen3:8B call fallback:', err.message);
   }
 
-  // Fallback explanation if Ollama is unreachable
   const devPct = structuredFacts.deviation_percent || 0.0;
+  let fallbackText = `The offered price is about ${Math.abs(devPct).toFixed(1)}% below the historical seasonal median based on available public mandi data.`;
+  if (language === 'te') {
+    fallbackText = `లభ్యమైన మండి డేటా ప్రకారం ఆఫర్ చేసిన ధర చారిత్రక సగటు కంటే దాదాపు ${Math.abs(devPct).toFixed(1)}% తక్కువగా ఉంది.`;
+  } else if (language === 'hi') {
+    fallbackText = `उपलब्ध मंडी आंकड़ों के अनुसार पेश की गई कीमत ऐतिहासिक औसत से लगभग ${Math.abs(devPct).toFixed(1)}% कम है।`;
+  }
+
   return {
-    text: `The offered price is about ${Math.abs(devPct).toFixed(1)}% below the historical seasonal median based on available public mandi data.`,
+    text: fallbackText,
     source: "fallback"
   };
 }
@@ -146,16 +257,56 @@ async function checkAiHealth() {
   };
 }
 
-// Core Analysis Engine
+// Core Dynamic Analysis Engine
 async function runAnalysis(body) {
+  const locationName = body.location?.name;
+  if (!locationName || typeof locationName !== 'string' || !locationName.trim()) {
+    throw new Error("HARD RULE VIOLATION: Location is required. Please provide a valid location (e.g. Village, Mandi, or City).");
+  }
+
+  const quantity = Number(body.quantity);
+  if (isNaN(quantity) || quantity <= 0) {
+    throw new Error("HARD RULE VIOLATION: Quantity must be greater than 0 kg. Entering 0 kg or negative quantity is invalid.");
+  }
+
+  const rawPrice = Number(body.current_offered_price);
+  if (isNaN(rawPrice) || rawPrice <= 0) {
+    throw new Error("HARD RULE VIOLATION: Offered price must be greater than 0. Entering 0 price or negative price is invalid.");
+  }
+
   const crop = normalizeCrop(body.crop || 'Onion');
-  const quantity = Number(body.quantity) || 1000;
-  let rawPrice = Number(body.current_offered_price) || 18;
   const priceUnit = body.price_unit || (rawPrice > 500 ? 'qtl' : 'kg');
   const currentPriceKg = priceUnit === 'qtl' || rawPrice > 500 ? rawPrice / 100 : rawPrice;
 
-  const lat = body.location?.latitude || 17.3850;
-  const lon = body.location?.longitude || 78.4867;
+  let lat = body.location?.latitude;
+  let lon = body.location?.longitude;
+
+  const HYDERABAD_LAT = 17.3850;
+  const HYDERABAD_LON = 78.4867;
+  const isDefaultCoords = (lat === undefined || lon === undefined || (Math.abs(lat - HYDERABAD_LAT) < 0.0001 && Math.abs(lon - HYDERABAD_LON) < 0.0001));
+
+  if (locationName && typeof locationName === 'string' && locationName.trim().length > 0) {
+    const isExplicitHyderabad = locationName.toLowerCase().includes('hyderabad');
+    if (isDefaultCoords && !isExplicitHyderabad) {
+      const resolved = await forwardGeocode(locationName);
+      if (resolved) {
+        lat = resolved.latitude;
+        lon = resolved.longitude;
+      } else {
+        throw new Error(`Location resolution failed: Unable to geocode '${locationName}'. Please provide a valid location.`);
+      }
+    }
+  }
+
+  lat = lat !== undefined ? Number(lat) : HYDERABAD_LAT;
+  lon = lon !== undefined ? Number(lon) : HYDERABAD_LON;
+
+  // Execute Live API Requests in Parallel
+  const [liveLocation, liveWeather, liveAgMarkNetRecords] = await Promise.all([
+    body.location?.name ? Promise.resolve(body.location.name) : reverseGeocode(lat, lon),
+    getWeather(lat, lon),
+    fetchLiveAgMarkNet(crop)
+  ]);
 
   // Filter historical prices
   const cropItem = Object.values(knownCrops).find(c => c.name.toLowerCase() === crop.toLowerCase());
@@ -193,7 +344,7 @@ async function runAnalysis(body) {
     display = 'Price looks lower than usual';
   }
 
-  // Nearby Mandis
+  // Nearby Mandis calculation
   const nearbyMandisFormatted = mandisData.map(m => {
     const dist = haversineDistance(lat, lon, Number(m.latitude), Number(m.longitude));
     const mPrices = pricesData.filter(p => Number(p.mandi_id) === Number(m.id) && Number(p.crop_id) === cropId);
@@ -208,16 +359,18 @@ async function runAnalysis(body) {
     const diffFromCurrentPct = ((hMedian - currentPriceKg) / currentPriceKg) * 100;
     return {
       name: m.name,
+      latitude: Number(m.latitude),
+      longitude: Number(m.longitude),
       distance_km: Math.round(dist * 10) / 10,
       historical_median: Number(hMedian.toFixed(1)),
       difference_percent: Number(diffFromCurrentPct.toFixed(1)),
       signal: diffFromCurrentPct > 0 ? "HISTORICALLY_HIGHER" : "HISTORICALLY_LOWER"
     };
-  }).filter(alt => alt.distance_km > 0.5 && alt.distance_km <= 300)
+  }).filter(alt => alt.distance_km > 0.5 && alt.distance_km <= 150)
     .sort((a, b) => b.historical_median - a.historical_median || a.distance_km - b.distance_km)
     .slice(0, 3);
 
-  // Structured facts for Qwen
+  // Structured facts for Qwen AI
   const structuredFacts = {
     crop: crop,
     current_price: Number(currentPriceKg.toFixed(2)),
@@ -230,7 +383,8 @@ async function runAnalysis(body) {
     nearby_mandis: nearbyMandisFormatted.slice(0, 2)
   };
 
-  const aiExplanation = await generateAiExplanation(structuredFacts);
+  const reqLang = body.language || 'en';
+  const aiExplanation = await generateAiExplanation(structuredFacts, reqLang);
 
   return {
     status: 'success',
@@ -255,8 +409,14 @@ async function runAnalysis(body) {
       score: sampleSize >= 10 ? 0.86 : 0.65
     },
     explanation: aiExplanation,
+    location: {
+      latitude: lat,
+      longitude: lon,
+      name: liveLocation
+    },
+    weather: liveWeather,
     data_info: {
-      source: "AgMarkNet",
+      source: "AgMarkNet (Demo Data)",
       historical_period: "2020-2026"
     }
   };
@@ -277,9 +437,12 @@ const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
-  // Static Frontend Server Fallback
+  // Static Frontend Server & SPA Route Fallback
   if (!pathname.startsWith('/api/')) {
     let filePath = path.join(__dirname, '..', 'frontend', pathname === '/' ? 'index.html' : pathname);
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      filePath = path.join(__dirname, '..', 'frontend', 'index.html');
+    }
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath);
       const mimeTypes = {
@@ -290,7 +453,7 @@ const server = http.createServer((req, res) => {
         '.png': 'image/png',
         '.jpg': 'image/jpeg'
       };
-      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
+      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/html' });
       fs.createReadStream(filePath).pipe(res);
       return;
     }

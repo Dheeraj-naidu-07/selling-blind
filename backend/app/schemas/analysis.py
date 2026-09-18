@@ -12,6 +12,7 @@ class AnalysisRequest(BaseModel):
     current_offered_price: float = Field(..., gt=0) # per kg or per qtl
     price_unit: Optional[str] = "kg" # "kg" or "qtl"
     location: Optional[LocationInput] = None
+    language: Optional[str] = "en"
 
 class PriceSignal(BaseModel):
     label: str
