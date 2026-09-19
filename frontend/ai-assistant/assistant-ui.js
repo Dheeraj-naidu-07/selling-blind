@@ -265,7 +265,7 @@ class MandiAssistantUI {
     this.setStatus('PROCESSING');
 
     try {
-      const response = await fetch('/api/assistant/message', {
+      const response = await fetch('https://selling-blind.onrender.com/api/assistant/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
