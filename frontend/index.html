@@ -295,59 +295,117 @@
 
     <!-- ================= SEPARATE PAGE 1: /historical-price ================= -->
     <section id="historical-price-view" class="view-section">
-      <div class="dashboard-top-bar">
-        <button class="back-button" id="hp-back-btn" onclick="navigateTo('/results')">&larr; Back to Price Analysis</button>
-        <div class="dashboard-title-group">
-          <h2 id="hp-title">Price History</h2>
-          <p id="hp-subtitle">Track how the price has changed over time</p>
+      <div class="hp-top-bar">
+        <button class="hp-back-pill" id="hp-back-btn" onclick="navigateTo('/results')">
+          <span class="hp-back-arrow">←</span> Back to Price Analysis
+        </button>
+        <div class="hp-header-content">
+          <div class="hp-header-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          </div>
+          <div>
+            <h2 id="hp-title" class="hp-main-title">Price History</h2>
+            <p id="hp-subtitle" class="hp-main-subtitle">Track how the price has changed over time</p>
+          </div>
         </div>
       </div>
 
       <div class="charts-grid">
         <!-- Price Trend Chart -->
-        <div class="chart-card">
+        <div class="chart-card hp-card-shadow">
           <div class="chart-header">
-            <h3 class="chart-title" id="hp-trend-title"><span>📈</span> Price Trend</h3>
-            <span id="hp-trend-tag" class="live-map-tag">Last 6 Months</span>
+            <div class="hp-title-with-icon">
+              <div class="hp-card-icon green">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+              </div>
+              <div>
+                <h3 class="chart-title" id="hp-trend-title">Price Trend</h3>
+                <p class="hp-card-subtitle">See how the price has changed over the last 6 months</p>
+              </div>
+            </div>
+            <div class="hp-select-pill">
+              <span class="hp-cal-icon">📅</span>
+              <span id="hp-trend-tag">Last 6 Months</span>
+              <span class="hp-arrow-down">▼</span>
+            </div>
           </div>
-          <div class="canvas-container">
+          <div class="canvas-container" style="height: 270px;">
             <canvas id="hpTrendChartCanvas"></canvas>
           </div>
         </div>
 
         <!-- Price Distribution Card & Metrics -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3 class="chart-title" id="hp-dist-title"><span>📊</span> Price Distribution</h3>
+        <div class="chart-card hp-card-shadow">
+          <div class="chart-header" style="margin-bottom: 8px;">
+            <div class="hp-title-with-icon">
+              <div class="hp-card-icon teal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+              </div>
+              <div>
+                <h3 class="chart-title" id="hp-dist-title">Price Distribution</h3>
+                <p id="hp-dist-subtitle" class="hp-card-subtitle">How the current price compares to historical data</p>
+              </div>
+            </div>
           </div>
-          <p id="hp-dist-subtitle" style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 12px;">How the current price compares to historical data</p>
-          <div class="canvas-container" style="height: 140px;">
+
+          <div class="canvas-container" style="height: 195px; margin-bottom: 12px;">
             <canvas id="hpDistributionChartCanvas"></canvas>
           </div>
 
-          <div class="metrics-grid">
-            <div class="metric-pill">
-              <div class="metric-label" id="pill-label-today">Today's offer</div>
+          <div class="metrics-grid hp-metrics-grid">
+            <!-- Card 1: Today's Offer -->
+            <div class="metric-card-box green">
+              <div class="metric-box-top">
+                <div class="metric-icon-circle green">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div class="metric-label" id="pill-label-today">TODAY'S OFFER</div>
+              </div>
               <div class="metric-value" id="hp-current-price">₹18/kg</div>
+              <div class="metric-tag-pill green" id="hp-tag-today">+12.5% vs historical ↑</div>
             </div>
-            <div class="metric-pill">
-              <div class="metric-label" id="pill-label-median">Historical median</div>
+
+            <!-- Card 2: Historical Median -->
+            <div class="metric-card-box blue">
+              <div class="metric-box-top">
+                <div class="metric-icon-circle blue">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                </div>
+                <div class="metric-label" id="pill-label-median">HISTORICAL MEDIAN</div>
+              </div>
               <div class="metric-value" id="hp-historical-median">₹24.0/kg</div>
+              <div class="metric-tag-pill blue" id="hp-tag-median">Average price</div>
             </div>
-            <div class="metric-pill">
-              <div class="metric-label" id="pill-label-range">Historical typical range</div>
-              <div class="metric-value" id="hp-typical-range">₹20-₹26/kg</div>
+
+            <!-- Card 3: Historical Typical Range -->
+            <div class="metric-card-box purple">
+              <div class="metric-box-top">
+                <div class="metric-icon-circle purple">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 12h20M2 6h20M2 18h20"></path></svg>
+                </div>
+                <div class="metric-label" id="pill-label-range">HISTORICAL TYPICAL RANGE</div>
+              </div>
+              <div class="metric-value" id="hp-typical-range">₹21.5–₹26/kg</div>
+              <div class="metric-tag-pill purple" id="hp-tag-range">Common range</div>
             </div>
-            <div class="metric-pill highlight-red">
-              <div class="metric-label" id="pill-label-diff">Difference</div>
+
+            <!-- Card 4: Difference -->
+            <div class="metric-card-box highlight-red" id="hp-diff-card-box">
+              <div class="metric-box-top">
+                <div class="metric-icon-circle red" id="hp-diff-icon-circle">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+                </div>
+                <div class="metric-label" id="pill-label-diff">DIFFERENCE</div>
+              </div>
               <div class="metric-value" id="hp-difference">-20%</div>
+              <div class="metric-tag-pill red" id="hp-tag-diff">Lower than historical</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="disclaimer-box" id="hp-disclaimer-text">
-        Based on historical public AgMarkNet mandi data. Historical seasonal analysis helps identify price volatility trends.
+      <div class="hp-disclaimer-banner" id="hp-disclaimer-text">
+        <span class="hp-info-icon">ⓘ</span> Based on historical public AgMarkNet (Demo Data). Historical performance does not guarantee future prices or outcomes.
       </div>
     </section>
 

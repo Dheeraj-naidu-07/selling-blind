@@ -917,11 +917,48 @@ function renderHistoricalPricePage(data) {
   const lowerRange = hist.typical_low || 20.0;
   const upperRange = hist.typical_high || 26.0;
 
-  document.getElementById('hp-current-price').innerText = `₹${currentKg}/kg`;
-  document.getElementById('hp-historical-median').innerText = `₹${medianKg.toFixed(1)}/kg`;
-  document.getElementById('hp-typical-range').innerText = `₹${lowerRange}-₹${upperRange}/kg`;
-  document.getElementById('hp-difference').innerText = `${diffPct}%`;
-  document.getElementById('hp-disclaimer-text').innerText = `${t.disclaimerPrefix} ${data.data_info?.source || t.demoDataTag}${t.disclaimerSuffix}`;
+  const isHigher = diffPct >= 0;
+  const diffSign = diffPct > 0 ? '+' : '';
+
+  // Update card 1 (Today's offer)
+  const elCurrent = document.getElementById('hp-current-price');
+  if (elCurrent) elCurrent.innerText = `₹${currentKg}/kg`;
+
+  const elTagToday = document.getElementById('hp-tag-today');
+  if (elTagToday) elTagToday.innerText = `${diffSign}${diffPct}% vs historical ${isHigher ? '↑' : '↓'}`;
+
+  // Update card 2 (Historical median)
+  const elMedian = document.getElementById('hp-historical-median');
+  if (elMedian) elMedian.innerText = `₹${medianKg.toFixed(1)}/kg`;
+
+  // Update card 3 (Historical typical range)
+  const elRange = document.getElementById('hp-typical-range');
+  if (elRange) elRange.innerText = `₹${lowerRange}–₹${upperRange}/kg`;
+
+  // Update card 4 (Difference)
+  const elDiff = document.getElementById('hp-difference');
+  if (elDiff) elDiff.innerText = `${diffSign}${diffPct}%`;
+
+  const elTagDiff = document.getElementById('hp-tag-diff');
+  if (elTagDiff) elTagDiff.innerText = isHigher ? 'Higher than historical' : 'Lower than historical';
+
+  const diffCardBox = document.getElementById('hp-diff-card-box');
+  if (diffCardBox) {
+    if (isHigher) {
+      diffCardBox.className = 'metric-card-box green';
+      if (elTagDiff) elTagDiff.className = 'metric-tag-pill green';
+    } else {
+      diffCardBox.className = 'metric-card-box highlight-red';
+      if (elTagDiff) elTagDiff.className = 'metric-tag-pill red';
+    }
+  }
+
+  // Update disclaimer
+  const elDisclaimer = document.getElementById('hp-disclaimer-text');
+  if (elDisclaimer) {
+    const src = data.data_info?.source || t.demoDataTag;
+    elDisclaimer.innerHTML = `<span class="hp-info-icon">ⓘ</span> ${t.disclaimerPrefix} ${src}${t.disclaimerSuffix}`;
+  }
 
   drawTrendChart('hpTrendChartCanvas', currentKg, medianKg);
   drawDistributionChart('hpDistributionChartCanvas', currentKg, medianKg, lowerRange, upperRange);
@@ -1253,14 +1290,14 @@ function renderDemoFallback(payload) {
   renderDashboardResults(latestAnalysisData);
 }
 
-// Draw Trend Chart (HTML5 Canvas)
+// Draw Trend Chart (HTML5 Canvas - Image 2 Emerald Curve & Callouts)
 function drawTrendChart(canvasId, currentPrice, medianPrice) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  
+
   canvas.width = canvas.parentElement.clientWidth || 500;
-  canvas.height = 240;
+  canvas.height = 260;
 
   const w = canvas.width;
   const h = canvas.height;
@@ -1268,38 +1305,45 @@ function drawTrendChart(canvasId, currentPrice, medianPrice) {
   ctx.clearRect(0, 0, w, h);
 
   const months = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
-  const dataPoints = [18, 22, 26, 24, 25, currentPrice];
+  const displayVal = (currentPrice && currentPrice > 0) ? currentPrice : 27;
+  const dataPoints = [18, 22, 26, 24, 25, displayVal];
 
-  const padding = 40;
-  const chartW = w - padding * 2;
-  const chartH = h - padding * 2;
+  const paddingLeft = 45;
+  const paddingRight = 35;
+  const paddingTop = 45;
+  const paddingBottom = 35;
+
+  const chartW = w - paddingLeft - paddingRight;
+  const chartH = h - paddingTop - paddingBottom;
 
   const minVal = 14;
   const maxVal = 30;
 
-  // Grid lines
-  ctx.strokeStyle = '#e2e8f0';
+  // 1. Draw horizontal grid lines & y-axis labels
+  ctx.strokeStyle = '#f1f5f9';
   ctx.lineWidth = 1;
-  ctx.font = '11px sans-serif';
+  ctx.font = '500 11px Inter, sans-serif';
   ctx.fillStyle = '#94a3b8';
 
-  for (let v = 16; v <= 30; v += 4) {
-    const y = h - padding - ((v - minVal) / (maxVal - minVal)) * chartH;
+  const gridVals = [16, 20, 24, 28];
+  gridVals.forEach(v => {
+    const y = h - paddingBottom - ((v - minVal) / (maxVal - minVal)) * chartH;
     ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(w - padding, y);
+    ctx.moveTo(paddingLeft, y);
+    ctx.lineTo(w - paddingRight, y);
     ctx.stroke();
-    ctx.fillText(`₹${v}`, 8, y + 4);
-  }
+    ctx.fillText(`₹${v}`, 12, y + 4);
+  });
 
-  // Draw smooth curve
-  ctx.beginPath();
+  // 2. Calculate point coordinates
   const step = chartW / (months.length - 1);
   const points = dataPoints.map((val, i) => ({
-    x: padding + i * step,
-    y: h - padding - ((val - minVal) / (maxVal - minVal)) * chartH
+    x: paddingLeft + i * step,
+    y: h - paddingBottom - ((val - minVal) / (maxVal - minVal)) * chartH
   }));
 
+  // 3. Draw smooth curve path with area gradient fill below
+  ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
   for (let i = 0; i < points.length - 1; i++) {
     const xc = (points[i].x + points[i + 1].x) / 2;
@@ -1308,69 +1352,184 @@ function drawTrendChart(canvasId, currentPrice, medianPrice) {
   }
   ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
 
-  ctx.strokeStyle = '#8b5cf6';
-  ctx.lineWidth = 3;
+  // Gradient fill under curve
+  const areaPath = new Path2D();
+  areaPath.moveTo(points[0].x, points[0].y);
+  for (let i = 0; i < points.length - 1; i++) {
+    const xc = (points[i].x + points[i + 1].x) / 2;
+    const yc = (points[i].y + points[i + 1].y) / 2;
+    areaPath.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+  }
+  areaPath.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+  areaPath.lineTo(points[points.length - 1].x, h - paddingBottom);
+  areaPath.lineTo(points[0].x, h - paddingBottom);
+  areaPath.closePath();
+
+  const fillGrad = ctx.createLinearGradient(0, paddingTop, 0, h - paddingBottom);
+  fillGrad.addColorStop(0, 'rgba(16, 185, 129, 0.16)');
+  fillGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+  ctx.fillStyle = fillGrad;
+  ctx.fill(areaPath);
+
+  // Draw stroke curve
+  ctx.strokeStyle = '#059669';
+  ctx.lineWidth = 3.5;
   ctx.stroke();
 
-  // Draw points & labels
+  // 4. Draw data points and pill callout badges
   points.forEach((pt, i) => {
+    // Circle dot
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#8b5cf6';
+    ctx.fillStyle = '#059669';
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
+    // Month x-axis label
     ctx.fillStyle = '#64748b';
-    ctx.fillText(months[i], pt.x - 10, h - 12);
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.fillText(months[i], pt.x - 10, h - 10);
 
-    ctx.fillStyle = '#7c3aed';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(`₹${dataPoints[i]}`, pt.x - 8, pt.y - 10);
+    // Pill badge above point
+    const pillText = `₹${dataPoints[i]}`;
+    const pillW = 34;
+    const pillH = 20;
+    const pillX = pt.x - pillW / 2;
+    const pillY = pt.y - 28;
+
+    ctx.fillStyle = i === points.length - 1 ? '#d1fae5' : '#f0fdf4';
+    ctx.strokeStyle = i === points.length - 1 ? '#059669' : '#a7f3d0';
+    ctx.lineWidth = 1.2;
+
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(pillX, pillY, pillW, pillH, 10);
+    } else {
+      ctx.rect(pillX, pillY, pillW, pillH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#047857';
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(pillText, pt.x, pillY + 14);
+    ctx.textAlign = 'left';
   });
 }
 
-// Draw Distribution Chart (Bar comparison)
+// Draw Distribution Chart (Image 2 4-Capsule Graphic with Wave & Callout Pills)
 function drawDistributionChart(canvasId, todayOffer, histMedian, lowerRange, upperRange) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  canvas.width = canvas.parentElement.clientWidth || 300;
-  canvas.height = 140;
+  canvas.width = canvas.parentElement.clientWidth || 380;
+  canvas.height = 195;
 
   const w = canvas.width;
   const h = canvas.height;
 
   ctx.clearRect(0, 0, w, h);
 
-  const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
-  const labels = [t.pillTodayOffer, t.pillHistMedian, "Range"];
-  const values = [todayOffer, histMedian, (lowerRange + upperRange) / 2];
-  const colors = ['#10b981', '#3b82f6', '#a855f7'];
+  const offerVal = (todayOffer && todayOffer > 0) ? todayOffer : 27;
+  const medianVal = (histMedian && histMedian > 0) ? histMedian : 24;
+  const rangeLowVal = (lowerRange && lowerRange > 0) ? lowerRange : 21.5;
+  const rangeHighVal = (upperRange && upperRange > 0) ? upperRange : 23.75;
 
-  const barW = 40;
-  const gap = (w - 60 - barW * 3) / 2;
+  const items = [
+    { label: "Today's Offer", val: offerVal, displayVal: `₹${offerVal}`, color1: '#10b981', color2: '#059669', pillBg: '#d1fae5', pillText: '#047857', icon: '🏷️' },
+    { label: "Historical Median", val: medianVal, displayVal: `₹${medianVal}`, color1: '#3b82f6', color2: '#2563eb', pillBg: '#dbeafe', pillText: '#1e40af', icon: '📊' },
+    { label: "Historical Typical", val: rangeLowVal, displayVal: `₹${rangeLowVal}`, color1: '#a855f7', color2: '#9333ea', pillBg: '#f3e8ff', pillText: '#6b21a8', icon: '♒' },
+    { label: "Range High", val: rangeHighVal, displayVal: `₹${rangeHighVal}`, color1: '#f59e0b', color2: '#d97706', pillBg: '#fef3c7', pillText: '#92400e', icon: '↗' }
+  ];
 
-  values.forEach((val, i) => {
-    const x = 30 + i * (barW + gap);
-    const barH = (val / 30) * (h - 40);
-    const y = h - 25 - barH;
+  const colW = (w - 30) / 4;
+  const capsuleMaxH = 95;
+  const bottomY = h - 35;
 
-    ctx.fillStyle = colors[i];
+  const wavePoints = [];
+
+  items.forEach((item, i) => {
+    const cx = 15 + i * colW + colW / 2;
+    const barH = Math.min(capsuleMaxH, Math.max(45, (item.val / 30) * capsuleMaxH));
+    const capsuleY = bottomY - barH;
+    const capsuleW = 38;
+    const capsuleX = cx - capsuleW / 2;
+
+    wavePoints.push({ x: cx, y: capsuleY - 14 });
+
+    // 1. Draw rounded capsule bar
+    const grad = ctx.createLinearGradient(0, capsuleY, 0, bottomY);
+    grad.addColorStop(0, item.color1);
+    grad.addColorStop(1, item.color2);
+
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(x, y, barW, barH, 6) : ctx.rect(x, y, barW, barH);
+    if (ctx.roundRect) {
+      ctx.roundRect(capsuleX, capsuleY, capsuleW, barH, [18, 18, 8, 8]);
+    } else {
+      ctx.rect(capsuleX, capsuleY, capsuleW, barH);
+    }
     ctx.fill();
 
-    ctx.fillStyle = '#1e293b';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(`₹${val}`, x + 6, y - 6);
+    // 2. Icon Circle inside capsule at bottom
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx, bottomY - 16, 11, 0, Math.PI * 2);
+    ctx.fill();
 
+    ctx.fillStyle = item.color2;
+    ctx.font = '10px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(item.icon, cx, bottomY - 12);
+
+    // 3. Top Callout Pill
+    const pillW = 44;
+    const pillH = 20;
+    const pillX = cx - pillW / 2;
+    const pillY = capsuleY - 24;
+
+    ctx.fillStyle = item.pillBg;
+    ctx.strokeStyle = item.color1;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(pillX, pillY, pillW, pillH, 10);
+    } else {
+      ctx.rect(pillX, pillY, pillW, pillH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = item.pillText;
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.fillText(item.displayVal, cx, pillY + 14);
+
+    // 4. Label below capsule
     ctx.fillStyle = '#64748b';
-    ctx.font = '10px sans-serif';
-    ctx.fillText(labels[i].slice(0, 12), x - 5, h - 8);
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.fillText(item.label, cx, h - 8);
+    ctx.textAlign = 'left';
   });
+
+  // Draw connecting wave curve line over top of pills
+  if (wavePoints.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(wavePoints[0].x, wavePoints[0].y);
+    for (let i = 0; i < wavePoints.length - 1; i++) {
+      const xc = (wavePoints[i].x + wavePoints[i + 1].x) / 2;
+      const yc = (wavePoints[i].y + wavePoints[i + 1].y) / 2;
+      ctx.quadraticCurveTo(wavePoints[i].x, wavePoints[i].y, xc, yc);
+    }
+    ctx.lineTo(wavePoints[wavePoints.length - 1].x, wavePoints[wavePoints.length - 1].y);
+
+    ctx.strokeStyle = '#059669';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
 }
 
 // ClickSpark Canvas Animation Effect
