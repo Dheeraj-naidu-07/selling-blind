@@ -1,6 +1,6 @@
 // Selling Blind - Mandi Saathi Frontend Client Logic with Multi-Language Support (EN, TE, HI)
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = 'https://selling-blind.onrender.com/api/v1';
 
 let currentCoordinates = {
   latitude: 17.3850,
