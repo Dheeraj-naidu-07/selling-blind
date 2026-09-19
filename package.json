@@ -1,0 +1,25 @@
+{
+  "name": "selling-blind",
+  "version": "1.0.0",
+  "description": "> **Track**: AGRITECH & RURAL INNOVATION   > **Problem Statement**: PS-A02 — Selling Blind   > **Objective**: Decision-support prototype helping farmers determine whether their current offered mandi price is unusually low for their crop, season, and region, and identifying reachable nearby mandis with historically better prices.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+"scripts": {
+  "start": "node backend/server.js"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dheeraj-naidu-07/selling-blind.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Dheeraj-naidu-07/selling-blind/issues"
+  },
+  "homepage": "https://github.com/Dheeraj-naidu-07/selling-blind#readme"
+}
