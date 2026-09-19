@@ -449,8 +449,12 @@ function scrollToHowItWorks() {
 }
 
 function openAiChatModal() {
-  const t = TRANSLATIONS[currentLanguage];
-  alert(`${t.aiModalTitle}: ${t.aiModalText}`);
+  if (window.mandiAssistantUI && typeof window.mandiAssistantUI.openModal === 'function') {
+    window.mandiAssistantUI.openModal();
+  } else {
+    const modal = document.getElementById('ai-assistant-modal');
+    if (modal) modal.style.display = 'flex';
+  }
 }
 
 // Global Language Switcher Function

@@ -36,14 +36,14 @@ const pricesData = parseCSV(path.join(dataDir, 'demo_prices.csv'));
 
 // Crop normalization & catalog
 const knownCrops = {
-  'onion': { id: 1, name: 'Onion', category: 'Vegetables', aliases: ['pyaz', 'kanda', 'ullipaya'] },
-  'potato': { id: 2, name: 'Potato', category: 'Vegetables', aliases: ['aloo', 'alugadda'] },
-  'tomato': { id: 3, name: 'Tomato', category: 'Vegetables', aliases: ['tamatar', 'thakkali'] },
-  'wheat': { id: 4, name: 'Wheat', category: 'Grains', aliases: ['gehun', 'godhuma'] },
-  'paddy': { id: 5, name: 'Paddy', category: 'Grains', aliases: ['rice', 'chawal', 'dhan'] },
-  'cotton': { id: 6, name: 'Cotton', category: 'Fiber', aliases: ['kapas', 'patti'] },
-  'red chilli': { id: 7, name: 'Red Chilli', category: 'Spices', aliases: ['chilli', 'mirchi', 'lal mirch'] },
-  'maize': { id: 8, name: 'Maize', category: 'Grains', aliases: ['corn', 'makka', 'jonnalu'] }
+  'onion': { id: 1, name: 'Onion', category: 'Vegetables', aliases: ['pyaz', 'kanda', 'ullipaya', 'ullipayalu', 'ullipayalaku', 'प्याज', 'ఉల్లిపాయ', 'ఉల్లిపాయలు', 'ఉల్లిపాయలకు'] },
+  'potato': { id: 2, name: 'Potato', category: 'Vegetables', aliases: ['aloo', 'alugadda', 'aloo', 'आलू', 'బంగాళాదుంప'] },
+  'tomato': { id: 3, name: 'Tomato', category: 'Vegetables', aliases: ['tamatar', 'thakkali', 'टमाटर', 'టమోటా'] },
+  'wheat': { id: 4, name: 'Wheat', category: 'Grains', aliases: ['gehun', 'godhuma', 'गेहूं', 'గోధుమ'] },
+  'paddy': { id: 5, name: 'Paddy', category: 'Grains', aliases: ['rice', 'chawal', 'dhan', 'चावल', 'వరి'] },
+  'cotton': { id: 6, name: 'Cotton', category: 'Fiber', aliases: ['kapas', 'patti', 'कपास', 'పత్తి'] },
+  'red chilli': { id: 7, name: 'Red Chilli', category: 'Spices', aliases: ['chilli', 'mirchi', 'lal mirch', 'लाल मिर्च', 'మిరపకాయ'] },
+  'maize': { id: 8, name: 'Maize', category: 'Grains', aliases: ['corn', 'makka', 'jonnalu', 'मक्का', 'మొక్కజొన్న'] }
 };
 
 function normalizeCrop(rawName) {
@@ -55,6 +55,62 @@ function normalizeCrop(rawName) {
     }
   }
   return rawName.toString().trim().charAt(0).toUpperCase() + rawName.toString().trim().slice(1);
+}
+
+// Option 2 Structured Input Extraction Helper
+function extractStructuredInput(transcript, prevState = {}, userLoc = {}) {
+  const text = (transcript || '').toLowerCase();
+  
+  const state = {
+    crop: prevState.crop || null,
+    quantity: prevState.quantity || null,
+    quantity_unit: prevState.quantity_unit || 'kg',
+    offered_price: prevState.offered_price || null,
+    price_unit: prevState.price_unit || 'kg',
+    location_name: prevState.location_name || null,
+    latitude: (prevState.latitude !== null && prevState.latitude !== undefined) ? prevState.latitude : (userLoc.latitude || null),
+    longitude: (prevState.longitude !== null && prevState.longitude !== undefined) ? prevState.longitude : (userLoc.longitude || null),
+    language: prevState.language || 'en-IN'
+  };
+
+  // 1. Crop Detection
+  for (const [key, data] of Object.entries(knownCrops)) {
+    if (text.includes(key) || data.aliases.some(alias => text.includes(alias))) {
+      state.crop = data.name;
+      break;
+    }
+  }
+
+  // 2. Offered Price Detection (numbers near rupees/rs/₹/kg/రకములు/రూపాయలు/रुपये)
+  const numbers = text.match(/\b(\d+(?:\.\d+)?)\b/g);
+  if (numbers && numbers.length > 0) {
+    for (const numStr of numbers) {
+      const val = parseFloat(numStr);
+      if (!isNaN(val) && val > 0 && val < 50000) {
+        state.offered_price = val;
+        break;
+      }
+    }
+  }
+
+  // 3. Location Detection
+  const knownPlaces = ['baramati', 'solapur', 'bowenpally', 'hyderabad', 'narsapur', 'medak', 'pune', 'mumbai', 'delhi', 'nizamabad', 'warangal', 'khammam', 'mahbubnagar', 'karimnagar'];
+  for (const place of knownPlaces) {
+    if (text.includes(place)) {
+      state.location_name = place.charAt(0).toUpperCase() + place.slice(1);
+      break;
+    }
+  }
+
+  const locMatch = text.match(/(?:at|in|located in|from|near)\s+([a-z\s]+)/i);
+  if (locMatch && locMatch[1]) {
+    const cand = locMatch[1].trim();
+    if (cand.length > 2 && !['rupees', 'onions', 'crop', 'selling', 'getting', 'price'].includes(cand)) {
+      state.location_name = cand.charAt(0).toUpperCase() + cand.slice(1);
+    }
+  }
+
+  return state;
 }
 
 // Haversine distance formula
@@ -71,10 +127,14 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 
 // 1. LIVE NOMINATIM REVERSE & FORWARD GEOCODING API
 async function reverseGeocode(lat, lon) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
-      headers: { 'User-Agent': 'SellingBlindMandiSaathi/1.0' }
+      headers: { 'User-Agent': 'SellingBlindMandiSaathi/1.0' },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       const addr = data.address || {};
@@ -84,6 +144,7 @@ async function reverseGeocode(lat, lon) {
       return `${city}, ${state}, ${country}`;
     }
   } catch (err) {
+    clearTimeout(timeoutId);
     console.log('[Geocoding API Notice] Nominatim fallback used:', err.message);
   }
   return `Location (${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)})`;
@@ -93,10 +154,14 @@ async function forwardGeocode(locationName) {
   if (!locationName || typeof locationName !== 'string' || !locationName.trim()) {
     return null;
   }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName.trim())}&format=json&limit=1`, {
-      headers: { 'User-Agent': 'SellingBlindMandiSaathi/1.0' }
+      headers: { 'User-Agent': 'SellingBlindMandiSaathi/1.0' },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       if (data && data.length > 0) {
@@ -109,6 +174,7 @@ async function forwardGeocode(locationName) {
       }
     }
   } catch (err) {
+    clearTimeout(timeoutId);
     console.log('[Geocoding API Notice] Forward geocoding failed:', err.message);
   }
   return null;
@@ -264,14 +330,16 @@ async function runAnalysis(body) {
     throw new Error("HARD RULE VIOLATION: Location is required. Please provide a valid location (e.g. Village, Mandi, or City).");
   }
 
+  const quantityRaw = body.quantity !== undefined ? body.quantity.toString() : '';
   const quantity = Number(body.quantity);
-  if (isNaN(quantity) || quantity <= 0) {
-    throw new Error("HARD RULE VIOLATION: Quantity must be greater than 0 kg. Entering 0 kg or negative quantity is invalid.");
+  if (quantityRaw.includes('-') || quantityRaw.includes('/') || isNaN(quantity) || quantity <= 0) {
+    throw new Error("HARD RULE VIOLATION: Quantity must be greater than 0 kg. Entering 0 kg, negative numbers, fractions (e.g. 1/8), or invalid quantity is strictly invalid.");
   }
 
+  const rawPriceStr = body.current_offered_price !== undefined ? body.current_offered_price.toString() : '';
   const rawPrice = Number(body.current_offered_price);
-  if (isNaN(rawPrice) || rawPrice <= 0) {
-    throw new Error("HARD RULE VIOLATION: Offered price must be greater than 0. Entering 0 price or negative price is invalid.");
+  if (rawPriceStr.includes('-') || rawPriceStr.includes('/') || isNaN(rawPrice) || rawPrice <= 0) {
+    throw new Error("HARD RULE VIOLATION: Offered price must be greater than 0. Entering 0 price, negative numbers, fractions (e.g. 1/8), or invalid price is strictly invalid.");
   }
 
   const crop = normalizeCrop(body.crop || 'Onion');
@@ -499,6 +567,110 @@ const server = http.createServer((req, res) => {
         const result = await runAnalysis(body);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: err.message }));
+      }
+    });
+  } else if (req.method === 'POST' && (pathname === '/api/assistant/message' || pathname === '/api/v1/assistant/message')) {
+    let bodyData = '';
+    req.on('data', chunk => { bodyData += chunk.toString(); });
+    req.on('end', async () => {
+      try {
+        const body = JSON.parse(bodyData || '{}');
+        const transcript = (body.transcript || '').trim();
+        const prevState = body.session_state || {};
+        const reqLang = body.language || prevState.language || 'en-IN';
+        const userLoc = body.user_location || {};
+
+        // Structured Extraction helper
+        const newState = extractStructuredInput(transcript, prevState, userLoc);
+        newState.language = reqLang;
+
+        // Check required fields: crop, offered_price, location
+        const hasCrop = !!newState.crop;
+        const hasPrice = newState.offered_price !== null && newState.offered_price !== undefined && newState.offered_price > 0;
+        const hasLocation = (!!newState.location_name && newState.location_name.trim().length > 0) || (newState.latitude !== null && newState.latitude !== undefined);
+
+        const langShort = reqLang.startsWith('te') ? 'te' : (reqLang.startsWith('hi') ? 'hi' : 'en');
+
+        // Missing field follow-up questions
+        if (!hasCrop) {
+          const followUps = {
+            en: "What crop are you selling? (e.g. Onion, Potato, Tomato, Wheat)",
+            te: "మీరు ఏ పంటను అమ్ముతున్నారు? (ఉదా. ఉల్లిపాయ, బంగాళాదుంప, టమోటా, గోధుమ)",
+            hi: "आप कौन सी फसल बेच रहे हैं? (जैसे प्याज, आलू, टमाटर, गेहूं)"
+          };
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'success',
+            complete: false,
+            missing_field: 'crop',
+            session_state: newState,
+            reply_text: followUps[langShort] || followUps.en
+          }));
+          return;
+        }
+
+        if (!hasPrice) {
+          const followUps = {
+            en: `What price are you being offered per kilogram for ${newState.crop}?`,
+            te: `${newState.crop} కు మీకు కిలో ఎంత ధర ఇస్తున్నారు?`,
+            hi: `${newState.crop} के लिए आपको प्रति किलो क्या कीमत मिल रही है?`
+          };
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'success',
+            complete: false,
+            missing_field: 'offered_price',
+            session_state: newState,
+            reply_text: followUps[langShort] || followUps.en
+          }));
+          return;
+        }
+
+        if (!hasLocation) {
+          const followUps = {
+            en: "Where are you located? Please tell me your village, city or market name.",
+            te: "మీరు ఏ ప్రాంతంలో ఉన్నారు? దయచేసి మీ గ్రామం లేదా నగరం పేరు చెప్పండి.",
+            hi: "आप कहां स्थित हैं? कृपया अपने गांव या शहर का नाम बताएं।"
+          };
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'success',
+            complete: false,
+            missing_field: 'location',
+            session_state: newState,
+            reply_text: followUps[langShort] || followUps.en
+          }));
+          return;
+        }
+
+        // All required facts present -> Execute Analysis Engine
+        let locPayload = { name: newState.location_name || 'Selected Location' };
+        if (newState.latitude !== null && newState.longitude !== null) {
+          locPayload.latitude = newState.latitude;
+          locPayload.longitude = newState.longitude;
+        }
+
+        const analysisPayload = {
+          crop: newState.crop,
+          quantity: newState.quantity || 10,
+          current_offered_price: newState.offered_price,
+          location: locPayload,
+          language: langShort
+        };
+
+        const facts = await runAnalysis(analysisPayload);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'success',
+          complete: true,
+          session_state: newState,
+          reply_text: facts.explanation?.text || "Analysis complete.",
+          facts: facts
+        }));
       } catch (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: err.message }));

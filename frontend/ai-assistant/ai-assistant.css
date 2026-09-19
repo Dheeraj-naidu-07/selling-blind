@@ -1,0 +1,347 @@
+/* ===================================================
+   MANDI SAATHI — OPTION 2 LIVE AI VOICE ASSISTANT CSS
+   (Isolated from Option 1 Styles)
+   =================================================== */
+
+.assistant-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(9, 9, 11, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.assistant-card {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 540px;
+  height: 85vh;
+  max-height: 680px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  position: relative;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Header */
+.assistant-header {
+  background: #18181b;
+  color: #ffffff;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #27272a;
+}
+
+.assistant-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.assistant-avatar-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #047857;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.4);
+}
+
+.assistant-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.assistant-tagline {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+.assistant-close-btn {
+  background: #27272a;
+  border: none;
+  color: #d4d4d8;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.assistant-close-btn:hover {
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+/* Language Selector Row */
+.assistant-lang-row {
+  background: #f4f4f5;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.assistant-lang-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.assistant-lang-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.ast-lang-btn {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #3f3f46;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ast-lang-btn.active {
+  background: #18181b;
+  color: #ffffff;
+  border-color: #18181b;
+}
+
+/* Chat Message Scroll Area */
+.assistant-chat-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #fafafa;
+}
+
+.chat-bubble {
+  max-width: 82%;
+  padding: 14px 18px;
+  border-radius: 18px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  animation: bubblePop 0.2s ease-out;
+}
+
+@keyframes bubblePop {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-bubble.assistant {
+  align-self: flex-start;
+  background: #ffffff;
+  color: #18181b;
+  border: 1px solid #e4e4e7;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  background: #047857;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble-time {
+  font-size: 0.68rem;
+  opacity: 0.75;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* Status Indicator Pill */
+.assistant-status-banner {
+  text-align: center;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #52525b;
+  background: #f4f4f5;
+  border-top: 1px solid #e4e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a1a1aa;
+}
+
+.assistant-status-banner.listening .status-dot {
+  background: #ef4444;
+  animation: pulseMic 1.2s infinite;
+}
+
+.assistant-status-banner.processing .status-dot {
+  background: #f59e0b;
+  animation: pulseMic 1.2s infinite;
+}
+
+.assistant-status-banner.speaking .status-dot {
+  background: #10b981;
+  animation: pulseMic 1.2s infinite;
+}
+
+/* Microphone & Action Controls Area */
+.assistant-controls-footer {
+  padding: 20px;
+  background: #ffffff;
+  border-top: 1px solid #e4e4e7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.mic-button-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-pulse-ring {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.25);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.mic-button-wrapper.listening .mic-pulse-ring {
+  animation: micRingPulse 1.4s infinite cubic-bezier(0, 0.2, 0.8, 1);
+  background: rgba(239, 68, 68, 0.3);
+}
+
+@keyframes micRingPulse {
+  0% { transform: scale(0.8); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.big-mic-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #18181b;
+  color: #ffffff;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(24, 24, 27, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 2;
+}
+
+.big-mic-btn:hover {
+  transform: scale(1.06);
+  background: #27272a;
+}
+
+.mic-button-wrapper.listening .big-mic-btn {
+  background: #ef4444;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+.mic-button-wrapper.speaking .big-mic-btn {
+  background: #10b981;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+}
+
+.mic-hint-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Text Input Fallback Row */
+.assistant-text-fallback-row {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.assistant-text-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #d4d4d8;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.assistant-text-input:focus {
+  border-color: #18181b;
+}
+
+.assistant-send-btn {
+  background: #18181b;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.assistant-send-btn:hover {
+  background: #27272a;
+}
